@@ -4,83 +4,49 @@
 
 @layer base {
   :root {
-    --bg-primary: #f8fafc;
-    --bg-card: #ffffff;
-    --text-primary: #0f172a;
-    --text-secondary: #64748b;
-    --border: #e2e8f0;
-    --accent-green: #22c55e;
-    --accent-orange: #f59e0b;
-    --accent-blue: #0ea5e9;
-  }
-  .dark {
-    --bg-primary: #070c14;
+    --bg-page: #070c14;
     --bg-card: #0d1520;
+    --accent-green: #22c55e;
+    --accent-gold: #f59e0b;
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --border: #1e293b;
   }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     font-family: 'DM Sans', sans-serif;
-    background: var(--bg-primary);
+    background: var(--bg-page);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+  h1, h2, h3, h4 {
+    font-family: 'Syne', sans-serif;
+  }
 }
 
 @layer components {
   .card {
-    @apply bg-white dark:bg-[#0d1520] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm;
-  }
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
-  }
-  .gradient-text {
-    @apply bg-gradient-to-r from-leaf-500 via-solar-500 to-sky-500 bg-clip-text text-transparent;
-  }
-  .btn-primary {
-    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white
-           bg-gradient-to-r from-leaf-500 to-leaf-600 hover:from-leaf-600 hover:to-leaf-700
-           shadow-lg shadow-leaf-500/20 hover:shadow-leaf-500/40
-           transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
-  }
-  .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm
-           border border-slate-200 dark:border-slate-700
-           bg-white dark:bg-slate-800/50 text-slate-700 dark:text-slate-300
-           hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200;
-  }
-  .kpi-value {
-    font-family: 'Syne', sans-serif;
-    @apply text-2xl font-bold tracking-tight;
-  }
-  .input-field {
-    @apply w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700
-           bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
-           focus:outline-none focus:ring-2 focus:ring-leaf-500/50 focus:border-leaf-500
-           transition-colors duration-200;
+    @apply bg-[#0d1520] border border-slate-800 rounded-2xl;
   }
 }
 
-/* Plotly override for dark mode */
-.dark .js-plotly-plot .plotly .modebar { filter: invert(0.8); }
-
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: #64748b; }
-
-/* Shimmer animation */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+.dark .js-plotly-plot .plotly .modebar {
+  filter: invert(0.8);
 }
-.shimmer {
-  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.15) 50%, transparent 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 9999px;
 }

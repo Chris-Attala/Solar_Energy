@@ -8,17 +8,6 @@ export interface EnergyData {
   discharged: number;
 }
 
-export interface KPIData {
-  totalProduced: number;
-  autoconsumption: number;
-  selfSufficiency: number;
-  totalSavings: number;
-  totalExported: number;
-  totalImported: number;
-  netBalance: number;
-  productionChange: number;
-}
-
 export interface OpenMeteoData {
   date: Date;
   solarRadiation: number;
@@ -30,21 +19,18 @@ export interface MonthlyProjection {
   monthIndex: number;
   production: number;
   savings: number;
-  selfConsumed: number;
-}
-
-export interface SeasonalStats {
-  season: string;
-  label: string;
-  emoji: string;
-  avgDailyProduction: number;
-  totalProduction: number;
-  avgAutoconsumption: number;
-  avgSelfSufficiency: number;
-  savings: number;
-  days: number;
-  color: string;
+  daysInMonth: number;
 }
 
 export type Granularity = 'daily' | 'weekly' | 'monthly';
-export type Season = 'all' | 'spring' | 'summer' | 'autumn' | 'winter';
+
+export interface PeriodKPIs {
+  totalProduced: number;
+  days: number;
+  avgDailyProduction: number;
+  autoconsumption: number;
+  selfSufficiency: number;
+  totalSavings: number;
+  totalExported: number;
+  totalImported: number;
+}
