@@ -1,10 +1,10 @@
-import { Sun, Euro, Zap, ArrowUpRight, ArrowDownLeft, TrendingUp, Receipt } from 'lucide-react';
+import { Sun, Euro, TrendingUp, ArrowUpRight, ArrowDownLeft, BarChart2 } from 'lucide-react';
 
 interface Props {
   avgDailyProduction: number;
   annualSavings: number;
-  monthlyImportCost: number;
-  autoconsumption: number;
+  monthlyNetBalance: number;
+  selfSufficiencyPerDay: number;
   totalExported: number;
   totalImported: number;
   periodSavings: number;
@@ -14,11 +14,13 @@ interface Props {
   bestDayDate: string;
 }
 
+const EXPORT_PRICE = 0.04; // €/kWh rachat EDF
+
 export function KPICards({
   avgDailyProduction,
   annualSavings,
-  monthlyImportCost,
-  autoconsumption,
+  monthlyNetBalance,
+  selfSufficiencyPerDay,
   totalExported,
   totalImported,
   periodSavings,
@@ -27,6 +29,8 @@ export function KPICards({
   bestDayKwh,
   bestDayDate,
 }: Props) {
+  const exportRevenue = totalExported * EXPORT_PRICE;
+
   const cards = [
     {
       title: 'Prod. journalière moyenne',
@@ -45,26 +49,26 @@ export function KPICards({
       color: '#f59e0b',
     },
     {
-      title: 'Coût mensuel (import)',
-      value: monthlyImportCost.toFixed(2),
-      unit: '€',
-      subtitle: 'Acheté au réseau par mois',
-      icon: Receipt,
-      color: '#f87171',
+      title: 'Bilan mensuel',
+      value: monthlyNetBalance >= 0 ? `+${monthlyNetBalance.toFixed(0)}` : monthlyNetBalance.toFixed(0),
+      unit: '€/mois',
+      subtitle: 'Économies + export − import',
+      icon: BarChart2,
+      color: monthlyNetBalance >= 0 ? '#22c55e' : '#f87171',
     },
     {
-      title: 'Autoconsommation',
-      value: autoconsumption.toFixed(0),
+      title: 'Autosuffisance / jour',
+      value: selfSufficiencyPerDay.toFixed(0),
       unit: '%',
-      subtitle: 'Consommé sur place vs produit',
-      icon: Zap,
+      subtitle: 'Conso. couverte par le solaire',
+      icon: TrendingUp,
       color: '#38bdf8',
     },
     {
       title: 'Exporté réseau',
       value: totalExported.toFixed(0),
       unit: 'kWh',
-      subtitle: 'Injecté sur le réseau',
+      subtitle: `≈ ${exportRevenue.toFixed(0)} € à 0.04 €/kWh`,
       icon: ArrowUpRight,
       color: '#f59e0b',
     },
@@ -88,7 +92,7 @@ export function KPICards({
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">
                   {c.title}
                 </p>
-                <p className="font-display text-2xl font-bold text-white leading-tight">
+                <p className="font-display text-2xl font-bold text-white leading-tight" style={{ color: c.color }}>
                   {c.value}
                   <span className="text-slate-400 font-normal text-base ml-1">{c.unit}</span>
                 </p>
@@ -117,16 +121,16 @@ export function KPICards({
               <span className="font-semibold text-[#22c55e]">+{periodSavings.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between items-baseline">
+              <span className="text-slate-400">Revenu export (0.04 €/kWh)</span>
+              <span className="font-semibold text-[#f59e0b]">+{exportRevenue.toFixed(2)} €</span>
+            </div>
+            <div className="flex justify-between items-baseline">
               <span className="text-slate-400">Coût importé (réseau)</span>
               <span className="font-semibold text-rose-400">−{importCost.toFixed(2)} €</span>
             </div>
             <div className="pt-2 mt-2 border-t border-slate-700 flex justify-between items-baseline">
               <span className="text-slate-300 font-medium">Bilan net</span>
-              <span
-                className={`font-display font-bold text-lg ${
-                  netCostBalance >= 0 ? 'text-[#22c55e]' : 'text-rose-400'
-                }`}
-              >
+              <span className={`font-display font-bold text-lg ${netCostBalance >= 0 ? 'text-[#22c55e]' : 'text-rose-400'}`}>
                 {netCostBalance >= 0 ? '+' : ''}{netCostBalance.toFixed(2)} €
               </span>
             </div>
@@ -134,7 +138,7 @@ export function KPICards({
         </div>
         <div className="card p-5 border-l-4 border-[#22c55e]/60 flex flex-col justify-center">
           <div className="flex items-center gap-2 text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-            <TrendingUp size={14} /> Meilleur jour
+            <Sun size={14} /> Meilleur jour
           </div>
           <p className="font-display text-2xl font-bold text-white">
             {bestDayKwh.toFixed(1)} kWh

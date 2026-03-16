@@ -6,14 +6,14 @@ import { filterBySeason, type SeasonFilter } from '../utils/dataProcessing';
 type BilanType = 'total' | 'jour' | 'semaine' | 'mois';
 
 const TYPE_OPTIONS: { value: BilanType; label: string }[] = [
-  { value: 'total', label: 'Total' },
-  { value: 'jour', label: 'Moy. journalière' },
+  { value: 'total',   label: 'Total' },
+  { value: 'jour',    label: 'Moy. journalière' },
   { value: 'semaine', label: 'Moy. hebdo' },
-  { value: 'mois', label: 'Moy. mensuelle' },
+  { value: 'mois',    label: 'Moy. mensuelle' },
 ];
 
 const SEASON_OPTIONS: { value: SeasonFilter; label: string }[] = [
-  { value: 'all', label: 'Toutes' },
+  { value: 'all',    label: 'Toutes' },
   { value: 'winter', label: 'Hiver' },
   { value: 'spring', label: 'Printemps' },
   { value: 'summer', label: 'Été' },
@@ -26,77 +26,72 @@ interface Props {
 }
 
 function getNumMonths(start: Date, end: Date): number {
-  const n =
+  return Math.max(1,
     (end.getFullYear() - start.getFullYear()) * 12 +
-    (end.getMonth() - start.getMonth()) +
-    1;
-  return Math.max(1, n);
+    (end.getMonth() - start.getMonth()) + 1
+  );
 }
 
 export function ChartBilanEnergie({ data, electricityPrice }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [bilanType, setBilanType] = useState<BilanType>('total');
-  const [season, setSeason] = useState<SeasonFilter>('all');
+  const [season, setSeason]       = useState<SeasonFilter>('all');
 
-  const filteredData = season === 'all' ? data : filterBySeason(data, season);
+  const filteredData      = season === 'all' ? data : filterBySeason(data, season);
   const hasNoDataForSeason = season !== 'all' && filteredData.length === 0;
 
   useEffect(() => {
     if (!ref.current || filteredData.length === 0) return;
 
-    const days = filteredData.length;
-    const numWeeks = Math.max(1, Math.ceil(days / 7));
-    const start = filteredData[0].date;
-    const end = filteredData[filteredData.length - 1].date;
+    const days      = filteredData.length;
+    const numWeeks  = Math.max(1, Math.ceil(days / 7));
+    const start     = filteredData[0].date;
+    const end       = filteredData[filteredData.length - 1].date;
     const numMonths = getNumMonths(start, end);
 
-    let totalProduced = filteredData.reduce((s, d) => s + d.produced, 0);
-    let totalConsumed = filteredData.reduce((s, d) => s + d.consumed, 0);
-    let totalExported = filteredData.reduce((s, d) => s + d.exported, 0);
-    let totalImported = filteredData.reduce((s, d) => s + d.imported, 0);
+    const totalProduced = filteredData.reduce((s, d) => s + d.produced, 0);
+    const totalConsumed = filteredData.reduce((s, d) => s + d.consumed, 0);
+    const totalExported = filteredData.reduce((s, d) => s + d.exported, 0);
+    const totalImported = filteredData.reduce((s, d) => s + d.imported, 0);
 
-    let divisor = 1;
-    let xLabel = 'kWh';
-    if (bilanType === 'jour') {
-      divisor = days;
-      xLabel = 'kWh/jour';
-    } else if (bilanType === 'semaine') {
-      divisor = numWeeks;
-      xLabel = 'kWh/semaine';
-    } else if (bilanType === 'mois') {
-      divisor = numMonths;
-      xLabel = 'kWh/mois';
-    }
+    // Diviseur unique selon le type — appliqué partout de façon cohérente
+    const divisor = bilanType === 'jour' ? days
+                  : bilanType === 'semaine' ? numWeeks
+                  : bilanType === 'mois' ? numMonths
+                  : 1;
 
-    const produced = totalProduced / divisor;
-    const consumed = totalConsumed / divisor;
-    const exported = totalExported / divisor;
-    const imported = totalImported / divisor;
-    const importCost = (totalImported * electricityPrice) / (bilanType === 'mois' ? numMonths : bilanType === 'semaine' ? numWeeks : bilanType === 'jour' ? days : 1);
+    const xLabel = bilanType === 'jour' ? 'kWh/jour'
+                 : bilanType === 'semaine' ? 'kWh/semaine'
+                 : bilanType === 'mois' ? 'kWh/mois'
+                 : 'kWh';
 
-    const labels = ['Produit', 'Consommé', 'Exporté', 'Importé'];
-    const values = [produced, consumed, exported, imported];
-    const colors = ['#22c55e', '#38bdf8', '#f59e0b', '#f87171'];
+    const produced   = totalProduced / divisor;
+    const consumed   = totalConsumed / divisor;
+    const exported   = totalExported / divisor;
+    const imported   = totalImported / divisor;
+    const importCost = (totalImported * electricityPrice) / divisor;
 
-    const fmt = bilanType === 'total' ? (n: number) => n.toFixed(0) : (n: number) => n.toFixed(1);
+    const fmt = (n: number) => bilanType === 'total' ? n.toFixed(0) : n.toFixed(1);
+
     const trace: Plotly.Data = {
-      x: values,
-      y: labels,
+      x: [produced, consumed, exported, imported],
+      y: ['Produit', 'Consommé', 'Exporté', 'Importé'],
       type: 'bar',
       orientation: 'h',
-      marker: { color: colors },
-      text: labels.map((l, i) => {
-        const v = values[i];
-        if (i === 3) return `${fmt(v)} kWh (${importCost.toFixed(2)} €)`;
-        return `${fmt(v)} kWh`;
-      }),
+      marker: { color: ['#22c55e', '#38bdf8', '#f59e0b', '#f87171'] },
+      text: [
+        `${fmt(produced)} kWh`,
+        `${fmt(consumed)} kWh`,
+        `${fmt(exported)} kWh`,
+        `${fmt(imported)} kWh (${importCost.toFixed(2)} €)`,
+      ],
       textposition: 'outside',
       hovertemplate: '<b>%{y}</b><br>%{x:.1f} kWh<extra></extra>',
     };
 
-    const layout: Partial<Plotly.Layout> = {
+    Plotly.react(ref.current, [trace], {
       paper_bgcolor: '#0d1520',
-      plot_bgcolor: '#0d1520',
+      plot_bgcolor:  '#0d1520',
       font: { color: '#94a3b8', family: 'DM Sans' },
       xaxis: {
         title: { text: xLabel, font: { color: '#94a3b8' } },
@@ -104,13 +99,12 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         zeroline: false,
       },
       yaxis: { gridcolor: 'transparent', color: '#94a3b8' },
-      margin: { l: 80, r: 130, t: 20, b: 40 },
+      margin: { l: 80, r: 140, t: 20, b: 40 },
       bargap: 0.4,
       showlegend: false,
       autosize: true,
-    };
+    }, { responsive: true, displayModeBar: false });
 
-    Plotly.react(ref.current, [trace], layout, { responsive: true, displayModeBar: false });
   }, [filteredData, electricityPrice, bilanType]);
 
   return (
@@ -124,27 +118,21 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           <div className="flex gap-1 p-1 rounded-lg bg-slate-800/80">
-            {TYPE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setBilanType(opt.value)}
+            {TYPE_OPTIONS.map(opt => (
+              <button key={opt.value} onClick={() => setBilanType(opt.value)}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                   bilanType === opt.value ? 'bg-[#22c55e] text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
+                }`}>
                 {opt.label}
               </button>
             ))}
           </div>
           <div className="flex gap-1 p-1 rounded-lg bg-slate-800/80">
-            {SEASON_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setSeason(opt.value)}
+            {SEASON_OPTIONS.map(opt => (
+              <button key={opt.value} onClick={() => setSeason(opt.value)}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                   season === opt.value ? 'bg-[#f59e0b] text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
+                }`}>
                 {opt.label}
               </button>
             ))}
