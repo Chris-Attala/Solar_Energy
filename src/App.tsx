@@ -5,7 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { EnergyData } from './types/energy';
 import { saveDataToCloud, loadDataFromCloud, isCloudEnabled } from './utils/storage';
 
-const DEFAULT_PRICE = 0.28;
+const DEFAULT_PRICE = 0.1813;
 
 export default function App() {
   const [data, setData] = useState<EnergyData[]>([]);
