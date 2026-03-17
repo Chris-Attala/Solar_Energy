@@ -115,7 +115,7 @@ export function Dashboard({ data, electricityPrice }: Props) {
   return (
     <div className="space-y-6">
       {/* Bandeau calibration */}
-      <div className={`mb-6 flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs ${
+      <div className={`mb-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs ${
         calibDays >= 7
           ? 'border-[#22c55e]/30 bg-[#22c55e]/5 text-[#22c55e]'
           : 'border-amber-700/30 bg-amber-900/10 text-amber-400'
@@ -127,6 +127,24 @@ export function Dashboard({ data, electricityPrice }: Props) {
           }
         </span>
       </div>
+
+      {/* Note discrète jours suspects */}
+      {(() => {
+        if (expectedData.length === 0) return null;
+        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const expectedMap = new Map(expectedData.map(d => [fmt(d.date), d.expectedProduction]));
+        const suspiciousDays = data.filter(d => {
+          const key = fmt(d.date);
+          const expected = expectedMap.get(key);
+          return expected && expected > 5 && d.produced < expected * 0.70;
+        });
+        if (suspiciousDays.length === 0) return null;
+        return (
+          <p className="text-[11px] text-slate-600 mb-3 px-1">
+            ⚠ {suspiciousDays.length} jour{suspiciousDays.length > 1 ? 's' : ''} avec production faible vs ensoleillement Open-Meteo — possible déconnexion EMA
+          </p>
+        );
+      })()}
 
       <KPICards
         avgDailyProduction={periodKPIs.avgDailyProduction}
