@@ -86,7 +86,7 @@ export default function App() {
               <Sun className="text-white" size={20} />
             </div>
             <div>
-              <div className="font-display font-bold text-lg text-white">EMA Solar</div>
+              <div className="font-display font-bold text-lg text-white">SolaCris</div>
               <div className="text-[10px] text-slate-500">Mandelieu-la-Napoule 06210</div>
             </div>
           </div>
