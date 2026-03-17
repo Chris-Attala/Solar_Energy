@@ -117,15 +117,15 @@ export function KPICards({
           </p>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-baseline">
-              <span className="text-slate-400">Économies (autoconsommation)</span>
+              <span className="text-slate-400"><span className="hidden sm:inline">Économies (autoconsommation)</span><span className="sm:hidden">Économies</span></span>
               <span className="font-semibold text-[#22c55e]">+{periodSavings.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-slate-400">Revenu export (0.04 €/kWh)</span>
+              <span className="text-slate-400"><span className="hidden sm:inline">Revenu export (0.04 €/kWh)</span><span className="sm:hidden">Export réseau</span></span>
               <span className="font-semibold text-[#f59e0b]">+{exportRevenue.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-slate-400">Coût importé (réseau)</span>
+              <span className="text-slate-400"><span className="hidden sm:inline">Coût importé (réseau)</span><span className="sm:hidden">Coût import</span></span>
               <span className="font-semibold text-rose-400">−{importCost.toFixed(2)} €</span>
             </div>
             <div className="pt-2 mt-2 border-t border-slate-700 flex justify-between items-baseline">
