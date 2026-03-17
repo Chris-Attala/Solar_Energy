@@ -99,7 +99,7 @@ export default function App() {
               type="number"
               min="0.05"
               max="1"
-              step="0.01"
+              step="0.0001"
               value={electricityPrice}
               onChange={(e) =>
                 setElectricityPrice(Math.max(0.05, Math.min(1, parseFloat(e.target.value) || DEFAULT_PRICE)))
