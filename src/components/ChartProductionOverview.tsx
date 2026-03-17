@@ -186,8 +186,8 @@ export function ChartProductionOverview({ data, expectedData, forecastData }: Pr
           zeroline: false,
         }
       } : {}),
-      legend: { orientation: 'h', x: 0, y: 1.10, font: { size: 11 } },
-      margin: { l: 55, r: hasIrradiance ? 60 : 20, t: 35, b: 45 },
+      legend: { orientation: 'h', x: 0, y: -0.18, font: { size: 10 } },
+      margin: { l: 55, r: hasIrradiance ? 60 : 20, t: 15, b: 80 },
       hovermode: 'x unified' as const,
       dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
