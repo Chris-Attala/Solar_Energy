@@ -151,11 +151,9 @@ export function Dashboard({ data, electricityPrice }: Props) {
       />
 
       <ChartProductionOverview
-        data={filteredData}
+        data={data}
         expectedData={expectedData}
         forecastData={forecastData}
-        granularity={granularity}
-        onGranularity={setGranularity}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

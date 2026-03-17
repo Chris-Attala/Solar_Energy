@@ -1,20 +1,13 @@
 import { useEffect, useRef } from 'react';
 import Plotly from 'plotly.js-dist-min';
-import { EnergyData, OpenMeteoData, Granularity } from '../types/energy';
-import { format, isAfter, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
-
-const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
-  { value: 'daily',   label: 'Jour' },
-  { value: 'weekly',  label: 'Semaine' },
-  { value: 'monthly', label: 'Mois' },
-];
+import { EnergyData, OpenMeteoData } from '../types/energy';
+import { format, isAfter, startOfDay, startOfWeek, startOfMonth, subDays } from 'date-fns';
 
 interface Props {
   data: EnergyData[];
   expectedData: OpenMeteoData[];   // archive (passé)
   forecastData: OpenMeteoData[];   // forecast (futur + aujourd'hui)
-  granularity: Granularity;
-  onGranularity: (g: Granularity) => void;
+
 }
 
 function aggregateOpenMeteo(
@@ -42,8 +35,9 @@ function aggregateOpenMeteo(
   return map;
 }
 
-export function ChartProductionOverview({ data, expectedData, forecastData, granularity, onGranularity }: Props) {
+export function ChartProductionOverview({ data, expectedData, forecastData }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const granularity = 'daily' as const;
 
   useEffect(() => {
     if (!ref.current) return;
@@ -52,6 +46,10 @@ export function ChartProductionOverview({ data, expectedData, forecastData, gran
     const text = '#94a3b8';
     const grid = '#1e293b';
     const today = startOfDay(new Date());
+
+    // Limiter les données réelles aux 7 derniers jours
+    const cutoff = subDays(today, 7);
+    const recentData = data.filter(d => !isAfter(cutoff, d.date));
 
     // Agréger archive et forecast selon granularité
     const archiveMap  = aggregateOpenMeteo(expectedData, granularity);
@@ -62,8 +60,8 @@ export function ChartProductionOverview({ data, expectedData, forecastData, gran
       ...Array.from(archiveMap.keys()),
       ...Array.from(forecastMap.keys()),
     ]);
-    // Aussi ajouter les dates réelles CSV
-    data.forEach(d => {
+    // Aussi ajouter les dates réelles CSV (30 derniers jours)
+    recentData.forEach(d => {
       let key: string;
       if (granularity === 'weekly')       key = format(startOfWeek(d.date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
       else if (granularity === 'monthly') key = format(startOfMonth(d.date), 'yyyy-MM-dd');
@@ -76,9 +74,9 @@ export function ChartProductionOverview({ data, expectedData, forecastData, gran
     // Données réelles agrégées
     const realMap = new Map<string, number>();
     if (granularity === 'daily') {
-      data.forEach(d => realMap.set(format(d.date, 'yyyy-MM-dd'), d.produced));
+      recentData.forEach(d => realMap.set(format(d.date, 'yyyy-MM-dd'), d.produced));
     } else {
-      data.forEach(d => {
+      recentData.forEach(d => {
         const key = granularity === 'weekly'
           ? format(startOfWeek(d.date, { weekStartsOn: 1 }), 'yyyy-MM-dd')
           : format(startOfMonth(d.date), 'yyyy-MM-dd');
@@ -201,34 +199,17 @@ export function ChartProductionOverview({ data, expectedData, forecastData, gran
       scrollZoom: false,
       doubleClick: false as const,
     });
-  }, [data, expectedData, forecastData, granularity]);
+  }, [data, expectedData, forecastData]);
 
   return (
     <div className="card p-5 mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 font-display">
-            Production réelle & prévision 14 jours
-          </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Vert : données réelles · Pointillés : prévision Open-Meteo · Fond : ensoleillement
-          </p>
-        </div>
-        <div className="flex gap-1 p-1 rounded-lg bg-slate-800/80 w-fit">
-          {GRANULARITY_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => onGranularity(opt.value)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                granularity === opt.value
-                  ? 'bg-[#22c55e] text-white'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+      <div className="mb-4">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 font-display">
+          Production réelle & prévision 14 jours
+        </h3>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Vert : 7 derniers jours réels · Pointillés : prévision Open-Meteo · Fond : ensoleillement
+        </p>
       </div>
       <div ref={ref} style={{ width: '100%', height: 340 }} />
     </div>
