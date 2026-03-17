@@ -14,8 +14,8 @@ import {
 import { format } from 'date-fns';
 import { KPICards } from './KPICards';
 import { Chart12Months } from './Chart12Months';
-import { ChartRealVsExpected } from './ChartRealVsExpected';
-import { ChartForecast14 } from './ChartForecast14';
+
+import { ChartProductionOverview } from './ChartProductionOverview';
 import { ChartEnergyBreakdown } from './ChartEnergyBreakdown';
 import { ChartSeasonal } from './ChartSeasonal';
 import { ChartBilanEnergie } from './ChartBilanEnergie';
@@ -150,15 +150,13 @@ export function Dashboard({ data, electricityPrice }: Props) {
         electricityPrice={electricityPrice}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <ChartRealVsExpected
-          data={filteredData}
-          expectedData={expectedData}
-          granularity={granularity}
-          onGranularity={setGranularity}
-        />
-        <ChartForecast14 forecastData={forecastData} />
-      </div>
+      <ChartProductionOverview
+        data={filteredData}
+        expectedData={expectedData}
+        forecastData={forecastData}
+        granularity={granularity}
+        onGranularity={setGranularity}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <ChartBilanEnergie data={data} electricityPrice={electricityPrice} />
