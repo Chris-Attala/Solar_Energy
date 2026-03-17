@@ -131,7 +131,7 @@ export function ChartProductionOverview({ data, expectedData, forecastData }: Pr
         y: irradianceY,
         type: 'bar',
         name: 'Ensoleillement (MJ/m²)',
-        marker: { color: 'rgba(251,191,36,0.18)' },
+        marker: { color: 'rgba(251,191,36,0.12)' },
         yaxis: 'y2',
         hovertemplate: '<b>%{x}</b><br>Irradiance : %{y:.0f} MJ/m²<extra></extra>',
       });
@@ -171,6 +171,7 @@ export function ChartProductionOverview({ data, expectedData, forecastData }: Pr
       font: { color: text, family: 'DM Sans' },
       xaxis: { gridcolor: grid, color: text, zeroline: false },
       yaxis: {
+        autorange: true,
         title: { text: 'Production (kWh)', font: { color: '#22c55e' } },
         gridcolor: grid,
         tickfont: { color: '#22c55e' },
@@ -184,6 +185,7 @@ export function ChartProductionOverview({ data, expectedData, forecastData }: Pr
           tickfont: { color: '#f59e0b' },
           showgrid: false,
           zeroline: false,
+          range: [0, 35],
         }
       } : {}),
       legend: { orientation: 'h', x: 0, y: -0.18, font: { size: 10 } },
@@ -211,7 +213,7 @@ export function ChartProductionOverview({ data, expectedData, forecastData }: Pr
           Vert : 7 derniers jours réels · Pointillés : prévision Open-Meteo · Fond : ensoleillement
         </p>
       </div>
-      <div ref={ref} style={{ width: '100%', height: 340 }} />
+      <div ref={ref} style={{ width: '100%', height: 380 }} />
     </div>
   );
 }

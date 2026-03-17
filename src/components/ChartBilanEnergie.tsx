@@ -85,7 +85,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         `${fmt(exported)} kWh`,
         `${fmt(imported)} kWh (${importCost.toFixed(2)} €)`,
       ],
-      textposition: 'outside',
+      textposition: 'auto',
       hovertemplate: '<b>%{y}</b><br>%{x:.1f} kWh<extra></extra>',
     };
 
@@ -97,9 +97,10 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         title: { text: xLabel, font: { color: '#94a3b8' } },
         gridcolor: '#1e293b',
         zeroline: false,
+        autorange: true,
       },
       yaxis: { gridcolor: 'transparent', color: '#94a3b8' },
-      margin: { l: 80, r: 140, t: 20, b: 40 },
+      margin: { l: 80, r: 20, t: 20, b: 40 },
       bargap: 0.4,
       showlegend: false, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,

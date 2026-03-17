@@ -40,16 +40,7 @@ export function Dashboard({ data, electricityPrice }: Props) {
   const filteredData = useMemo(() => aggregateByGranularity(data, granularity), [data, granularity]);
   const periodKPIs   = useMemo(() => computePeriodKPIs(data, electricityPrice), [data, electricityPrice]);
 
-  // Autosuffisance moyenne par jour
-  const selfSufficiencyPerDay = useMemo(() => {
-    const days = data.filter(d => d.consumed > 0);
-    if (days.length === 0) return 0;
-    const sum = days.reduce((s, d) => {
-      const selfConsumed = Math.max(0, d.produced - d.exported);
-      return s + (selfConsumed / d.consumed) * 100;
-    }, 0);
-    return Math.min(100, sum / days.length);
-  }, [data]);
+
 
   const avgDailyConsumption = useMemo(
     () => (data.length > 0 ? data.reduce((s, d) => s + d.consumed, 0) / data.length : 0),
@@ -60,20 +51,28 @@ export function Dashboard({ data, electricityPrice }: Props) {
   const exportRevenue  = periodKPIs.totalExported * EXPORT_PRICE;
   const netCostBalance = periodKPIs.totalSavings + exportRevenue - importCost;
 
-  const numMonths = useMemo(() => {
-    if (data.length === 0) return 1;
-    const start = data[0].date;
-    const end   = data[data.length - 1].date;
-    return Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1);
-  }, [data]);
-
-  const monthlyNetBalance = netCostBalance / numMonths;
+  // Moyenne mensuelle pondérée : bilan/jour × 30.44 jours/mois
+  const monthlyNetBalance = useMemo(() => {
+    if (periodKPIs.days === 0) return 0;
+    return (netCostBalance / periodKPIs.days) * 30.44;
+  }, [netCostBalance, periodKPIs.days]);
 
   const bestDay = useMemo(() => {
-    if (data.length === 0) return { kwh: 0, date: '' };
+    if (data.length === 0) return { kwh: 0, date: '', consumed: 0, exported: 0, imported: 0, selfConsumed: 0, savings: 0, selfSufficiency: 0 };
     const best = data.reduce((a, b) => (b.produced > a.produced ? b : a), data[0]);
-    return { kwh: best.produced, date: format(best.date, 'dd/MM/yyyy') };
-  }, [data]);
+    const selfConsumed = Math.max(0, best.produced - best.exported);
+    const selfSufficiency = best.consumed > 0 ? (selfConsumed / best.consumed) * 100 : 0;
+    return {
+      kwh: best.produced,
+      date: format(best.date, 'dd/MM/yyyy'),
+      consumed: best.consumed,
+      exported: best.exported,
+      imported: best.imported,
+      selfConsumed,
+      savings: selfConsumed * electricityPrice,
+      selfSufficiency,
+    };
+  }, [data, electricityPrice]);
 
   useEffect(() => {
     if (data.length === 0) return;
@@ -114,7 +113,7 @@ export function Dashboard({ data, electricityPrice }: Props) {
   }
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-6">
       {/* Bandeau calibration */}
       <div className={`mb-6 flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs ${
         calibDays >= 7
@@ -123,8 +122,8 @@ export function Dashboard({ data, electricityPrice }: Props) {
       }`}>
         <span className="font-semibold">
           {calibDays >= 7
-            ? `✓ Projections calibrées sur ${calibDays} jours réels · PR réel ${(realPR * 100).toFixed(0)}%`
-            : `⚠ Seulement ${calibDays} jour${calibDays > 1 ? 's' : ''} de données — projections théoriques (PR ${(realPR * 100).toFixed(0)}%). Importez plus de données pour calibrer.`
+            ? `✓ Projections affinées sur ${calibDays} jours de vos données réelles`
+            : `⚠ Peu de données disponibles — importez plus d'historique EMA pour des projections plus précises`
           }
         </span>
       </div>
@@ -133,14 +132,21 @@ export function Dashboard({ data, electricityPrice }: Props) {
         avgDailyProduction={periodKPIs.avgDailyProduction}
         annualSavings={annualSavings}
         monthlyNetBalance={monthlyNetBalance}
-        selfSufficiencyPerDay={selfSufficiencyPerDay}
+        selfSufficiencyPerDay={periodKPIs.selfSufficiency}
         totalExported={periodKPIs.totalExported}
         totalImported={periodKPIs.totalImported}
         periodSavings={periodKPIs.totalSavings}
         importCost={importCost}
         netCostBalance={netCostBalance}
+        periodDays={periodKPIs.days}
         bestDayKwh={bestDay.kwh}
         bestDayDate={bestDay.date}
+        bestDayConsumed={bestDay.consumed}
+        bestDayExported={bestDay.exported}
+        bestDayImported={bestDay.imported}
+        bestDaySelfConsumed={bestDay.selfConsumed}
+        bestDaySavings={bestDay.savings}
+        bestDaySelfSufficiency={bestDay.selfSufficiency}
       />
 
       <Chart12Months
@@ -156,12 +162,12 @@ export function Dashboard({ data, electricityPrice }: Props) {
         forecastData={forecastData}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartBilanEnergie data={data} electricityPrice={electricityPrice} />
         <ChartEnergyBreakdown data={data} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1">
         <ChartSeasonal data={data} electricityPrice={electricityPrice} />
       </div>
     </div>

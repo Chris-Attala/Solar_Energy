@@ -192,21 +192,41 @@ export function filterBySeason(data: EnergyData[], season: SeasonFilter): Energy
 export function getSeasonalBreakdown(
   data: EnergyData[],
   electricityPrice: number
-): { season: string; label: string; production: number; savings: number; importCost: number; days: number; color: string }[] {
+): { season: string; label: string; production: number; savings: number; importCost: number; days: number; totalDays: number; isEstimate: boolean; color: string }[] {
+  // Nombre de jours théoriques par saison (approximatif)
+  const SEASON_TOTAL_DAYS: Record<string, number> = {
+    winter: 90, spring: 92, summer: 92, autumn: 91,
+  };
   const config = [
-    { season: 'winter', label: 'Hiver', months: [11, 0, 1], color: '#38bdf8' },
-    { season: 'spring', label: 'Printemps', months: [2, 3, 4], color: '#22c55e' },
-    { season: 'summer', label: 'Été', months: [5, 6, 7], color: '#f59e0b' },
-    { season: 'autumn', label: 'Automne', months: [8, 9, 10], color: '#f97316' },
+    { season: 'winter', label: 'Hiver',     months: [11, 0, 1], color: '#38bdf8' },
+    { season: 'spring', label: 'Printemps', months: [2, 3, 4],  color: '#22c55e' },
+    { season: 'summer', label: 'Été',       months: [5, 6, 7],  color: '#f59e0b' },
+    { season: 'autumn', label: 'Automne',   months: [8, 9, 10], color: '#f97316' },
   ];
   return config.map(({ season, label, months, color }) => {
     const subset = data.filter((d) => months.includes(d.date.getMonth()));
-    const production = subset.reduce((s, d) => s + d.produced, 0);
-    const exported = subset.reduce((s, d) => s + d.exported, 0);
-    const imported = subset.reduce((s, d) => s + d.imported, 0);
+    const totalDays = SEASON_TOTAL_DAYS[season];
+
+    // Pas de données pour cette saison — retourner zéro
+    if (subset.length === 0) {
+      return { season, label, production: 0, savings: 0, importCost: 0, days: 0, totalDays, isEstimate: false, color };
+    }
+
+    const rawProduction = subset.reduce((s, d) => s + d.produced, 0);
+    const rawExported   = subset.reduce((s, d) => s + d.exported, 0);
+    const rawImported   = subset.reduce((s, d) => s + d.imported, 0);
+
+    // Extrapoler si données partielles (moins de 80% des jours de la saison)
+    const isEstimate = subset.length < totalDays * 0.8;
+    const factor = isEstimate ? totalDays / subset.length : 1;
+
+    const production  = rawProduction * factor;
+    const exported    = rawExported   * factor;
+    const imported    = rawImported   * factor;
     const selfConsumed = Math.max(0, production - exported);
-    const savings = selfConsumed * electricityPrice;
-    const importCost = imported * electricityPrice;
-    return { season, label, production, savings, importCost, days: subset.length, color };
+    const savings     = selfConsumed * electricityPrice;
+    const importCost  = imported * electricityPrice;
+
+    return { season, label, production, savings, importCost, days: subset.length, totalDays, isEstimate, color };
   });
 }
