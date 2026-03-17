@@ -69,7 +69,7 @@ export function ChartSeasonal({ data, electricityPrice }: Props) {
       autosize: true,
     };
 
-    Plotly.react(ref.current, traces, layout, { responsive: true, displayModeBar: false });
+    Plotly.react(ref.current, traces, layout, { responsive: true, displayModeBar: false, staticPlot: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
   }, [data, electricityPrice]);
 
   return (
