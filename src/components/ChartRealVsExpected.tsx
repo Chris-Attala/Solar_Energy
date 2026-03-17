@@ -80,7 +80,7 @@ export function ChartRealVsExpected({ data, expectedData, granularity, onGranula
       },
       legend: { orientation: 'h', x: 0, y: 1.08, font: { size: 11 } },
       margin: { l: 55, r: hasIrradiance ? 55 : 20, t: 30, b: 45 },
-      hovermode: 'x unified',
+      hovermode: 'x unified' as const, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
     };
 
@@ -133,7 +133,7 @@ export function ChartRealVsExpected({ data, expectedData, granularity, onGranula
       });
     }
 
-    Plotly.react(ref.current, traces, layout, { responsive: true, displayModeBar: false, staticPlot: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
+    Plotly.react(ref.current, traces, layout, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false as const });
   }, [data, expectedData, granularity]);
 
   return (

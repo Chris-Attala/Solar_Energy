@@ -65,11 +65,11 @@ export function ChartSeasonal({ data, electricityPrice }: Props) {
       bargap: 0.2,
       bargroupgap: 0.05,
       legend: { orientation: 'h', x: 0, y: 1.08, font: { size: 11 } },
-      hovermode: 'x unified',
+      hovermode: 'x unified' as const, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
     };
 
-    Plotly.react(ref.current, traces, layout, { responsive: true, displayModeBar: false, staticPlot: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
+    Plotly.react(ref.current, traces, layout, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false as const });
   }, [data, electricityPrice]);
 
   return (

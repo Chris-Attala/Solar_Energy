@@ -101,7 +101,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       yaxis: { gridcolor: 'transparent', color: '#94a3b8' },
       margin: { l: 80, r: 140, t: 20, b: 40 },
       bargap: 0.4,
-      showlegend: false,
+      showlegend: false, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
     }, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
 

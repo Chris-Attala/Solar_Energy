@@ -42,12 +42,12 @@ export function ChartForecast14({ forecastData }: Props) {
         zeroline: false,
       },
       margin: { l: 55, r: 20, t: 30, b: 45 },
-      hovermode: 'x unified',
+      hovermode: 'x unified' as const, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
       showlegend: false,
     };
 
-    Plotly.react(ref.current, [trace], layout, { responsive: true, displayModeBar: false, staticPlot: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
+    Plotly.react(ref.current, [trace], layout, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false as const });
   }, [forecastData]);
 
   return (

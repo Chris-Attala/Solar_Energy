@@ -87,9 +87,9 @@ export function Chart12Months({ monthlyProjections, avgDailyConsumption, electri
       legend: { orientation: 'h', x: 0, y: 1.10, font: { size: 11 } },
       margin: { l: 55, r: 55, t: 40, b: 45 },
       bargap: 0.25,
-      hovermode: 'x unified',
+      hovermode: 'x unified' as const, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
-    }, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
+    }, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false as const });
 
   }, [monthlyProjections, avgDailyConsumption, electricityPrice]);
 

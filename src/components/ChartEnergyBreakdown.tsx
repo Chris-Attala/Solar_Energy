@@ -38,7 +38,7 @@ export function ChartEnergyBreakdown({ data }: Props) {
       plot_bgcolor: '#0d1520',
       font: { color: '#94a3b8', family: 'DM Sans', size: 11 },
       margin: { l: 15, r: 15, t: 15, b: 15 },
-      showlegend: false,
+      showlegend: false, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
     };
 
