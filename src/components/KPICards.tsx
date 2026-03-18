@@ -33,7 +33,7 @@ export function KPICards({
 
   const cards = [
     { title: 'Production moy./j', value: avgDailyProduction.toFixed(1), unit: 'kWh/j', subtitle: 'Sur la période chargée', icon: Sun, color: '#22c55e' },
-    { title: 'Autosuffisance',    value: selfSufficiencyPerDay.toFixed(0), unit: '%', subtitle: 'Conso. couverte par le solaire', icon: TrendingUp, color: '#38bdf8' },
+    { title: 'Autosuffisance',    value: selfSufficiencyPerDay.toFixed(0), unit: '%', subtitle: 'Couverte par le solaire', icon: TrendingUp, color: '#38bdf8' },
     { title: 'Économies annuelles', value: annualSavings.toFixed(0), unit: '€', subtitle: 'Sur les 12 prochains mois', icon: Euro, color: '#f59e0b' },
     { title: 'Exporté réseau',    value: totalExported.toFixed(0), unit: 'kWh', subtitle: `≈ ${exportRevenue.toFixed(0)} € à 0.04 €/kWh`, icon: ArrowUpRight, color: '#f59e0b' },
     { title: 'Bilan mensuel',     value: monthlyNetBalance >= 0 ? `+${monthlyNetBalance.toFixed(0)}` : monthlyNetBalance.toFixed(0), unit: '€/mois', subtitle: 'Éco. + export − import', icon: BarChart2, color: monthlyNetBalance >= 0 ? '#22c55e' : '#f87171' },
