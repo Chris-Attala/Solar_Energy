@@ -90,7 +90,7 @@ export function KPICards({
       title: 'Importé réseau',
       value: periodDays > 0 ? (totalImported / periodDays * 30.44).toFixed(0) : '0',
       unit: 'kWh/mois',
-      subtitle: `Moyenne importée chez EDF`,
+      subtitle: `Total période : ${totalImported.toFixed(0)} kWh`,
       icon: ArrowDownLeft,
       color: '#f87171',
     },
@@ -106,7 +106,7 @@ export function KPICards({
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">
                   {c.title}
                 </p>
-                <p className="font-display text-2xl font-bold text-white leading-tight" style={{ color: c.color }}>
+                <p className="font-display text-xl sm:text-2xl font-bold text-white leading-tight" style={{ color: c.color }}>
                   {c.value}
                   <span className="text-slate-400 font-normal text-base ml-1">{c.unit}</span>
                 </p>
@@ -124,12 +124,12 @@ export function KPICards({
       </div>
 
       {/* Bloc coûts + meilleur jour */}
-      <div className="grid grid-cols-2 gap-5 mt-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
         <div className="card p-5 border-l-4 border-[#f59e0b]/60">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">
             Résumé coûts (période)
           </p>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-1.5 text-xs sm:text-sm">
             <div className="flex justify-between items-baseline">
               <span className="text-slate-400">Économies autoconso.</span>
               <span className="font-semibold text-[#22c55e]">+{periodSavings.toFixed(2)} €</span>
@@ -144,7 +144,7 @@ export function KPICards({
             </div>
             <div className="pt-2 mt-2 border-t border-slate-700 flex justify-between items-baseline">
               <span className="text-slate-300 font-medium">Bilan net</span>
-              <span className={`font-display font-bold text-lg ${netCostBalance >= 0 ? 'text-[#22c55e]' : 'text-rose-400'}`}>
+              <span className={`font-display font-bold text-base sm:text-lg ${netCostBalance >= 0 ? 'text-[#22c55e]' : 'text-rose-400'}`}>
                 {netCostBalance >= 0 ? '+' : ''}{netCostBalance.toFixed(2)} €
               </span>
             </div>
@@ -167,7 +167,7 @@ export function KPICards({
             })()}
             {/* Stats par jour */}
             {periodDays > 0 && (
-              <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800">
+              <div className="flex justify-between mt-2 pt-2 border-t border-slate-800">
                 <div>
                   <div className="text-[10px] text-slate-600 uppercase tracking-wider">Économies/jour</div>
                   <div className="text-sm font-semibold text-[#22c55e]">+{((periodSavings + exportRevenue) / periodDays).toFixed(2)} €</div>
@@ -187,17 +187,17 @@ export function KPICards({
             </div>
             <span className="text-xs text-slate-500">{bestDayDate}</span>
           </div>
-          <p className="font-display text-2xl font-bold text-[#22c55e] mb-3">
+          <p className="font-display text-lg sm:text-2xl font-bold text-[#22c55e] mb-2">
             {bestDayKwh.toFixed(1)} kWh produits
           </p>
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-1 text-[11px] sm:text-xs">
             {[
               { label: 'Consommé',      value: `${bestDayConsumed.toFixed(1)} kWh`,      color: 'text-slate-300' },
-              { label: 'Autoconsommé',  value: `${bestDaySelfConsumed.toFixed(1)} kWh`,  color: 'text-[#22c55e]' },
+              { label: 'Autoconso.',    value: `${bestDaySelfConsumed.toFixed(1)} kWh`,  color: 'text-[#22c55e]' },
               { label: 'Exporté',       value: `${bestDayExported.toFixed(1)} kWh`,      color: 'text-amber-400' },
               { label: 'Importé',       value: `${bestDayImported.toFixed(1)} kWh`,      color: 'text-rose-400' },
               { label: 'Économies',     value: `${bestDaySavings.toFixed(2)} €`,         color: 'text-[#22c55e]' },
-              { label: 'Autosuffisance',value: `${bestDaySelfSufficiency.toFixed(0)} %`, color: 'text-sky-400' },
+              { label: 'Autosuffis.',   value: `${bestDaySelfSufficiency.toFixed(0)} %`, color: 'text-sky-400' },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex justify-between items-baseline">
                 <span className="text-slate-500">{label}</span>
