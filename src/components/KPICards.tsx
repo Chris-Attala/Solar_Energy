@@ -47,7 +47,7 @@ export function KPICards({
 
   const cards = [
     {
-      title: 'Production moy./jour',
+      title: 'Production moy./j',
       value: avgDailyProduction.toFixed(1),
       unit: 'kWh/j',
       subtitle: 'Sur la période chargée',
@@ -55,11 +55,27 @@ export function KPICards({
       color: '#22c55e',
     },
     {
-      title: 'Économies annuelles projetées',
+      title: 'Autosuffisance',
+      value: selfSufficiencyPerDay.toFixed(0),
+      unit: '%',
+      subtitle: 'Conso. couverte par le solaire',
+      icon: TrendingUp,
+      color: '#38bdf8',
+    },
+    {
+      title: 'Économies annuelles',
       value: annualSavings.toFixed(0),
       unit: '€',
       subtitle: 'Sur les 12 prochains mois',
       icon: Euro,
+      color: '#f59e0b',
+    },
+    {
+      title: 'Exporté réseau',
+      value: totalExported.toFixed(0),
+      unit: 'kWh',
+      subtitle: `≈ ${exportRevenue.toFixed(0)} € à 0.04 €/kWh`,
+      icon: ArrowUpRight,
       color: '#f59e0b',
     },
     {
@@ -69,22 +85,6 @@ export function KPICards({
       subtitle: 'Économies + export − import',
       icon: BarChart2,
       color: monthlyNetBalance >= 0 ? '#22c55e' : '#f87171',
-    },
-    {
-      title: 'Autosuffisance / jour',
-      value: selfSufficiencyPerDay.toFixed(0),
-      unit: '%',
-      subtitle: 'Conso. couverte par le solaire',
-      icon: TrendingUp,
-      color: '#38bdf8',
-    },
-    {
-      title: 'Exporté réseau',
-      value: totalExported.toFixed(0),
-      unit: 'kWh',
-      subtitle: `≈ ${exportRevenue.toFixed(0)} € à 0.04 €/kWh`,
-      icon: ArrowUpRight,
-      color: '#f59e0b',
     },
     {
       title: 'Importé réseau',
@@ -103,7 +103,7 @@ export function KPICards({
           <div key={c.title} className="card p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500 mb-1 leading-tight">
                   {c.title}
                 </p>
                 <p className="font-display text-xl sm:text-2xl font-bold text-white leading-tight" style={{ color: c.color }}>
