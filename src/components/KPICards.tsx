@@ -132,15 +132,15 @@ export function KPICards({
           <div className="space-y-1.5 text-xs sm:text-sm">
             <div className="flex justify-between items-baseline">
               <span className="text-slate-400">Économies autoconso.</span>
-              <span className="font-semibold text-[#22c55e]">+{periodSavings.toFixed(2)} €</span>
+              <span className="font-semibold text-[#22c55e] whitespace-nowrap">+{periodSavings.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between items-baseline">
               <span className="text-slate-400"><span className="hidden sm:inline">Revenu export (0.04 €/kWh)</span><span className="sm:hidden">Export réseau</span></span>
-              <span className="font-semibold text-[#f59e0b]">+{exportRevenue.toFixed(2)} €</span>
+              <span className="font-semibold text-[#f59e0b] whitespace-nowrap">+{exportRevenue.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between items-baseline">
               <span className="text-slate-400"><span className="hidden sm:inline">Coût importé ({totalImported.toFixed(0)} kWh)</span><span className="sm:hidden">Coût import</span></span>
-              <span className="font-semibold text-rose-400">−{importCost.toFixed(2)} €</span>
+              <span className="font-semibold text-rose-400 whitespace-nowrap">−{importCost.toFixed(2)} €</span>
             </div>
             <div className="pt-2 mt-2 border-t border-slate-700 flex justify-between items-baseline">
               <span className="text-slate-300 font-medium">Bilan net</span>
@@ -167,14 +167,14 @@ export function KPICards({
             })()}
             {/* Stats par jour */}
             {periodDays > 0 && (
-              <div className="flex justify-between mt-2 pt-2 border-t border-slate-800">
+              <div className="flex justify-between mt-2 pt-2 border-t border-slate-800 gap-2">
                 <div>
-                  <div className="text-[10px] text-slate-600 uppercase tracking-wider">Économies/jour</div>
-                  <div className="text-sm font-semibold text-[#22c55e]">+{((periodSavings + exportRevenue) / periodDays).toFixed(2)} €</div>
+                  <div className="text-[9px] text-slate-600 uppercase tracking-wider whitespace-nowrap">Éco./jour</div>
+                  <div className="text-xs font-semibold text-[#22c55e] whitespace-nowrap">+{((periodSavings + exportRevenue) / periodDays).toFixed(2)} €</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[10px] text-slate-600 uppercase tracking-wider">Coût/jour</div>
-                  <div className="text-sm font-semibold text-rose-400">−{(importCost / periodDays).toFixed(2)} €</div>
+                  <div className="text-[9px] text-slate-600 uppercase tracking-wider whitespace-nowrap">Coût/jour</div>
+                  <div className="text-xs font-semibold text-rose-400 whitespace-nowrap">−{(importCost / periodDays).toFixed(2)} €</div>
                 </div>
               </div>
             )}
