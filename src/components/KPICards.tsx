@@ -124,7 +124,7 @@ export function KPICards({
       </div>
 
       {/* Bloc coûts + meilleur jour */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
+      <div className="grid grid-cols-2 gap-5 mt-5">
         <div className="card p-5 border-l-4 border-[#f59e0b]/60">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">
             Résumé coûts (période)
