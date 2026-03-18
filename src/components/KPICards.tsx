@@ -106,7 +106,7 @@ export function KPICards({
                 <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500 mb-1 leading-tight">
                   {c.title}
                 </p>
-                <p className="font-display text-xl sm:text-2xl font-bold text-white leading-tight" style={{ color: c.color }}>
+                <p className="font-display text-lg sm:text-2xl font-bold text-white leading-tight" style={{ color: c.color }}>
                   {c.value}
                   <span className="text-slate-400 font-normal text-base ml-1">{c.unit}</span>
                 </p>
