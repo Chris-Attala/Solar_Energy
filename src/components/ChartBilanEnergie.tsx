@@ -47,6 +47,11 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
   useEffect(() => {
     if (!ref.current || filteredData.length === 0) return;
 
+    const el = ref.current;
+
+    const draw = () => {
+      if (!el || filteredData.length === 0) return;
+
     const days      = filteredData.length;
     const numWeeks  = Math.max(1, Math.ceil(days / 7));
     const start     = filteredData[0].date;
@@ -88,13 +93,28 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
 
     const barX = [produced, selfConsumed, consumed, exported, imported];
     const maxBar = Math.max(...barX, 1e-9);
-    // Sur barre courte, Plotly réduit le texte "inside" à une taille minuscule → label à l'extérieur
-    const narrowFrac = 0.22;
-    const textposition = barX.map((v) =>
-      v / maxBar < narrowFrac ? ('outside' as const) : ('inside' as const)
-    );
+    const plotW = el.getBoundingClientRect().width || 360;
+    // Largeur utile approx. pour les barres (marges Plotly + libellés Y + légende axe)
+    const innerBarPx = Math.max(90, plotW * 0.5);
+    const narrowFrac =
+      plotW < 400 ? 0.48 : plotW < 520 ? 0.34 : plotW < 640 ? 0.26 : 0.22;
+    /** ~6.5px / caractère en 12px ; avec constraintext:none le texte ne rétrécit plus → besoin de place réelle */
+    const estTextPx = (s: string) => s.length * 6.5 + 28;
+    const barLabels = [
+      `${fmt(produced)} kWh`,
+      `${fmt(selfConsumed)} kWh (${eur(selfSavingsEur)} €)`,
+      `${fmt(consumed)} kWh (${eur(consumedValueEur)} €)`,
+      `${fmt(exported)} kWh (${eur(exportRevenueEur)} €)`,
+      `${fmt(imported)} kWh (${eur(importCost)} €)`,
+    ];
+    const textposition = barX.map((v, i) => {
+      const frac = v / maxBar;
+      const barPx = frac * innerBarPx;
+      const tooShortVsMax = frac < narrowFrac;
+      const tooTightForText = barPx < estTextPx(barLabels[i]);
+      return tooShortVsMax || tooTightForText ? ('outside' as const) : ('inside' as const);
+    });
     const outsideLabelColor = isDark ? '#e2e8f0' : '#0f172a';
-    const hasOutside = textposition.some((p) => p === 'outside');
 
     /**
      * textfont : base obligatoire pour y() dans Plotly (fusion inside/outside).
@@ -108,13 +128,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       orientation: 'h' as const,
       constraintext: 'none' as const,
       marker: { color: ['#22c55e', '#4ade80', '#38bdf8', '#f59e0b', '#f87171'] },
-      text: [
-        `${fmt(produced)} kWh`,
-        `${fmt(selfConsumed)} kWh (${eur(selfSavingsEur)} €)`,
-        `${fmt(consumed)} kWh (${eur(consumedValueEur)} €)`,
-        `${fmt(exported)} kWh (${eur(exportRevenueEur)} €)`,
-        `${fmt(imported)} kWh (${eur(importCost)} €)`,
-      ],
+      text: barLabels,
       // Plotly accepte un tableau par barre ; les types @types/plotly sont incomplets
       textposition: textposition as unknown as 'inside',
       textfont: {
@@ -132,7 +146,8 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       ],
       hovertemplate: '<b>%{y}</b><br>%{x:.1f} kWh%{customdata}<extra></extra>',
     } as unknown as Plotly.Data;
-    Plotly.react(ref.current, [trace], {
+    const nOutside = textposition.filter((p) => p === 'outside').length;
+    Plotly.react(el, [trace], {
       paper_bgcolor: pt.paper,
       plot_bgcolor: pt.plot,
       separators: pt.separators,
@@ -149,12 +164,24 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         automargin: true,
         tickfont: { size: 11 },
       },
-      margin: { l: 24, r: hasOutside ? 56 : 28, t: 20, b: 40 },
+      margin: {
+        l: 24,
+        r: nOutside >= 3 ? 68 : nOutside >= 1 ? 56 : 28,
+        t: 20,
+        b: 40,
+      },
       bargap: 0.4,
       showlegend: false, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
     }, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
+    };
 
+    draw();
+    const ro = new ResizeObserver(() => {
+      draw();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [filteredData, electricityPrice, bilanType, isDark]);
 
   return (
