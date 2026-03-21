@@ -69,21 +69,21 @@ export function KPICards({
 
       <div className="grid grid-cols-2 gap-3 sm:gap-5 mt-3 sm:mt-5">
         <div className="card p-3 sm:p-5 border-l-4 border-[#f59e0b]/60">
-          <div className="mb-2">
-            <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-theme-secondary">
-              Résumé coûts (période)
-            </p>
-            {periodDays > 0 && (
-              <p className="text-[9px] sm:text-[10px] text-theme-muted mt-0.5 normal-case tracking-normal">
-                {formatFrInt(periodDays)} jour{periodDays > 1 ? 's' : ''} concerné{periodDays > 1 ? 's' : ''}
-              </p>
+          <p className="text-[9px] sm:text-xs font-medium tracking-wider text-theme-secondary mb-2">
+            <span className="uppercase">Résumé coûts</span>
+            {periodDays > 0 ? (
+              <span className="normal-case font-medium">
+                {' '}
+                (période&nbsp;: {formatFrInt(periodDays)} jour{periodDays > 1 ? 's' : ''})
+              </span>
+            ) : (
+              <span className="normal-case font-medium"> (période)</span>
             )}
-          </div>
+          </p>
           <div className="space-y-1.5 text-[10px] sm:text-sm">
             <div className="flex justify-between items-baseline gap-1">
               <span className="text-theme-secondary min-w-0 pr-1">
-                Économies autoconso.{' '}
-                <span className="text-theme-muted font-normal">({formatFrInt(selfConsumedKwh)} kWh)</span>
+                Économies autoconso. ({formatFrInt(selfConsumedKwh)} kWh)
               </span>
               <span className="font-semibold text-[#22c55e] whitespace-nowrap">+{formatFr2(periodSavings)} €</span>
             </div>
