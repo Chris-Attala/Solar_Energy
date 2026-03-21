@@ -94,12 +94,14 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
     const barX = [produced, selfConsumed, consumed, exported, imported];
     const maxBar = Math.max(...barX, 1e-9);
     const plotW = el.getBoundingClientRect().width || 360;
-    // Largeur utile approx. pour les barres (marges Plotly + libellés Y + légende axe)
-    const innerBarPx = Math.max(90, plotW * 0.5);
+    // Largeur dispo pour les barres (évite de sous-estimer → faux "outside" type Importé sur mobile)
+    const reserveLeft = 24 + Math.min(102, Math.max(52, Math.round(plotW * 0.2)));
+    const reserveRight = 36;
+    const innerBarPx = Math.max(100, plotW - reserveLeft - reserveRight);
     const narrowFrac =
-      plotW < 400 ? 0.48 : plotW < 520 ? 0.34 : plotW < 640 ? 0.26 : 0.22;
-    /** ~6.5px / caractère en 12px ; avec constraintext:none le texte ne rétrécit plus → besoin de place réelle */
-    const estTextPx = (s: string) => s.length * 6.5 + 28;
+      plotW < 400 ? 0.4 : plotW < 520 ? 0.3 : plotW < 640 ? 0.24 : 0.22;
+    /** DM Sans 12px : chiffres assez étroits ; marge de sécurité modeste */
+    const estTextPx = (s: string) => s.length * 5.55 + 14;
     const barLabels = [
       `${fmt(produced)} kWh`,
       `${fmt(selfConsumed)} kWh (${eur(selfSavingsEur)} €)`,
@@ -111,7 +113,9 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       const frac = v / maxBar;
       const barPx = frac * innerBarPx;
       const tooShortVsMax = frac < narrowFrac;
-      const tooTightForText = barPx < estTextPx(barLabels[i]);
+      const need = estTextPx(barLabels[i]);
+      // Grandes barres : la place réelle suit presque toute la zone X → pas de pixel-check agressif
+      const tooTightForText = frac < 0.66 && barPx < need;
       return tooShortVsMax || tooTightForText ? ('outside' as const) : ('inside' as const);
     });
     const outsideLabelColor = isDark ? '#e2e8f0' : '#0f172a';
@@ -127,6 +131,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       type: 'bar' as const,
       orientation: 'h' as const,
       constraintext: 'none' as const,
+      cliponaxis: false,
       marker: { color: ['#22c55e', '#4ade80', '#38bdf8', '#f59e0b', '#f87171'] },
       text: barLabels,
       // Plotly accepte un tableau par barre ; les types @types/plotly sont incomplets
@@ -147,6 +152,14 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       hovertemplate: '<b>%{y}</b><br>%{x:.1f} kWh%{customdata}<extra></extra>',
     } as unknown as Plotly.Data;
     const nOutside = textposition.filter((p) => p === 'outside').length;
+    const marginRight =
+      nOutside === 0
+        ? 28
+        : plotW < 480
+          ? Math.min(120, 52 + nOutside * 22)
+          : nOutside >= 3
+            ? 76
+            : 62;
     Plotly.react(el, [trace], {
       paper_bgcolor: pt.paper,
       plot_bgcolor: pt.plot,
@@ -157,6 +170,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         gridcolor: pt.grid,
         zeroline: false,
         autorange: true,
+        automargin: true,
       },
       yaxis: {
         gridcolor: 'transparent',
@@ -166,7 +180,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       },
       margin: {
         l: 24,
-        r: nOutside >= 3 ? 68 : nOutside >= 1 ? 56 : 28,
+        r: marginRight,
         t: 20,
         b: 40,
       },
