@@ -109,14 +109,19 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       `${fmt(exported)} kWh (${eur(exportRevenueEur)} €)`,
       `${fmt(imported)} kWh (${eur(importCost)} €)`,
     ];
+    /** Barre large en kWh : on évite un faux « outside » (ex. Importé ~70 % du max sur mobile) */
+    const wideBarFrac = 0.62;
     const textposition = barX.map((v, i) => {
       const frac = v / maxBar;
       const barPx = frac * innerBarPx;
       const tooShortVsMax = frac < narrowFrac;
       const need = estTextPx(barLabels[i]);
-      // Grandes barres : la place réelle suit presque toute la zone X → pas de pixel-check agressif
-      const tooTightForText = frac < 0.66 && barPx < need;
-      return tooShortVsMax || tooTightForText ? ('outside' as const) : ('inside' as const);
+      const clearlyWide = frac >= wideBarFrac;
+      // Sauf grandes barres : si le texte ne tient pas en pixels → outside (ex. Importé 8 kWh vs max 800)
+      const tooTightForText = !clearlyWide && barPx < need;
+      /** Filet : micro-barre vs l’échelle (évite inside tronqué si estimations décalées) */
+      const microVsScale = frac < 0.15;
+      return tooShortVsMax || tooTightForText || microVsScale ? ('outside' as const) : ('inside' as const);
     });
     const outsideLabelColor = isDark ? '#e2e8f0' : '#0f172a';
 
