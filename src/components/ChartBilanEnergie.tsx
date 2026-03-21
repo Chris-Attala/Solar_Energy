@@ -65,22 +65,24 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
                  : bilanType === 'mois' ? 'kWh/mois'
                  : 'kWh';
 
-    const produced   = totalProduced / divisor;
-    const consumed   = totalConsumed / divisor;
-    const exported   = totalExported / divisor;
-    const imported   = totalImported / divisor;
-    const importCost = (totalImported * electricityPrice) / divisor;
+    const produced      = totalProduced / divisor;
+    const consumed      = totalConsumed / divisor;
+    const exported      = totalExported / divisor;
+    const imported      = totalImported / divisor;
+    const selfConsumed  = Math.max(0, totalProduced - totalExported) / divisor;
+    const importCost    = (totalImported * electricityPrice) / divisor;
 
     const fmt = (n: number) => bilanType === 'total' ? n.toFixed(0) : n.toFixed(1);
 
     const trace: Plotly.Data = {
-      x: [produced, consumed, exported, imported],
-      y: ['Produit', 'Consommé', 'Exporté', 'Importé'],
+      x: [produced, selfConsumed, consumed, exported, imported],
+      y: ['Produit', 'Autoconsommé', 'Consommé', 'Exporté', 'Importé'],
       type: 'bar',
       orientation: 'h',
-      marker: { color: ['#22c55e', '#38bdf8', '#f59e0b', '#f87171'] },
+      marker: { color: ['#22c55e', '#4ade80', '#38bdf8', '#f59e0b', '#f87171'] },
       text: [
         `${fmt(produced)} kWh`,
+        `${fmt(selfConsumed)} kWh`,
         `${fmt(consumed)} kWh`,
         `${fmt(exported)} kWh`,
         `${fmt(imported)} kWh (${importCost.toFixed(2)} €)`,
@@ -115,7 +117,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 font-display">
             Bilan énergie
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">Produit · Consommé · Exporté · Importé</p>
+          <p className="text-xs text-slate-500 mt-0.5">Produit · Autoconsommé · Consommé · Exporté · Importé</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <div className="flex gap-1 p-1 rounded-lg bg-slate-800/80">

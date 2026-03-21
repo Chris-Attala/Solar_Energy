@@ -18,9 +18,9 @@ export function ChartEnergyBreakdown({ data }: Props) {
     const totalImported = data.reduce((s, d) => s + d.imported, 0);
     const selfConsumed = Math.max(0, totalProduced - totalExported);
 
-    const labels = ['Autoconsommé', 'Exporté', 'Importé'];
-    const values = [selfConsumed, totalExported, totalImported];
-    const colors = ['#22c55e', '#f59e0b', '#f87171'];
+    const labels = ['Autoconsommé', 'Exporté'];
+    const values = [selfConsumed, totalExported];
+    const colors = ['#22c55e', '#f59e0b'];
 
     const trace: Plotly.Data = {
       labels,
@@ -50,7 +50,7 @@ export function ChartEnergyBreakdown({ data }: Props) {
       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-1 font-display">
         Répartition
       </h3>
-      <p className="text-xs text-slate-500 mb-4">Autoconsommé · Exporté · Importé (kWh)</p>
+      <p className="text-xs text-slate-500 mb-4">Autoconsommé · Exporté (kWh)</p>
       <div ref={ref} style={{ width: '100%', height: 260 }} />
     </div>
   );
