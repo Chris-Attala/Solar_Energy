@@ -3,8 +3,10 @@
  * Dates en local : new Date(y, m-1, d)
  */
 import { EnergyData, Granularity, PeriodKPIs } from '../types/energy';
-import { format, startOfWeek, startOfMonth } from 'date-fns';
+import { format, startOfWeek, startOfMonth, endOfWeek } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { dateToParisYmd } from './parisDate';
 
 function parseNum(v: unknown): number {
   if (v === null || v === undefined || v === '') return 0;
@@ -256,5 +258,97 @@ export function getSeasonalBreakdown(
     const importCost  = imported * electricityPrice;
 
     return { season, label, production, savings, importCost, days: subset.length, totalDays, isEstimate, color };
+  });
+}
+
+/** Fenêtre pour le graphique répartition production (autoconso / export). */
+export type RepartitionWindowMode = 'days' | 'weeks' | 'months';
+
+const REPARTITION_BUCKET_COUNT = 4;
+
+export interface RepartitionBucket {
+  label: string;
+  selfConsumed: number;
+  exported: number;
+}
+
+function ymdToLocalDate(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Somme produced/exported par jour civil (clé Paris / dateKey fichier). */
+function dailyProducedExportedMap(data: EnergyData[]): Map<string, { produced: number; exported: number }> {
+  const m = new Map<string, { produced: number; exported: number }>();
+  for (const row of data) {
+    const k = row.dateKey ?? dateToParisYmd(row.date);
+    const cur = m.get(k) ?? { produced: 0, exported: 0 };
+    cur.produced += row.produced;
+    cur.exported += row.exported;
+    m.set(k, cur);
+  }
+  return m;
+}
+
+/**
+ * Dernières tranches (4 jours, 4 semaines civiles lun–dim, ou 4 mois civils) : kWh autoconsommés vs exportés.
+ * Semaines / mois : agrégation des jours présents dans les données (pas d’imputation des jours manquants).
+ */
+export function buildProductionRepartitionBuckets(
+  data: EnergyData[],
+  mode: RepartitionWindowMode
+): RepartitionBucket[] {
+  if (data.length === 0) return [];
+  const daily = dailyProducedExportedMap(data);
+  const sortedDays = [...daily.entries()].sort(([a], [b]) => a.localeCompare(b));
+
+  if (mode === 'days') {
+    return sortedDays.slice(-REPARTITION_BUCKET_COUNT).map(([ymd, v]) => ({
+      label: format(ymdToLocalDate(ymd), 'd MMM', { locale: fr }),
+      selfConsumed: Math.max(0, v.produced - v.exported),
+      exported: v.exported,
+    }));
+  }
+
+  if (mode === 'weeks') {
+    const weekMap = new Map<string, { produced: number; exported: number }>();
+    for (const [ymd, v] of sortedDays) {
+      const dt = ymdToLocalDate(ymd);
+      const wStart = startOfWeek(dt, { weekStartsOn: 1 });
+      const wk = format(wStart, 'yyyy-MM-dd');
+      const cur = weekMap.get(wk) ?? { produced: 0, exported: 0 };
+      cur.produced += v.produced;
+      cur.exported += v.exported;
+      weekMap.set(wk, cur);
+    }
+    const sortedWk = [...weekMap.entries()].sort(([a], [b]) => a.localeCompare(b));
+    return sortedWk.slice(-REPARTITION_BUCKET_COUNT).map(([wStartStr, v]) => {
+      const start = ymdToLocalDate(wStartStr);
+      const end = endOfWeek(start, { weekStartsOn: 1 });
+      return {
+        label: `${format(start, 'd MMM', { locale: fr })} – ${format(end, 'd MMM', { locale: fr })}`,
+        selfConsumed: Math.max(0, v.produced - v.exported),
+        exported: v.exported,
+      };
+    });
+  }
+
+  const monthMap = new Map<string, { produced: number; exported: number }>();
+  for (const [ymd, v] of sortedDays) {
+    const mk = ymd.slice(0, 7);
+    const cur = monthMap.get(mk) ?? { produced: 0, exported: 0 };
+    cur.produced += v.produced;
+    cur.exported += v.exported;
+    monthMap.set(mk, cur);
+  }
+  const sortedM = [...monthMap.entries()].sort(([a], [b]) => a.localeCompare(b));
+  return sortedM.slice(-REPARTITION_BUCKET_COUNT).map(([ym, v]) => {
+    const [y, mo] = ym.split('-').map(Number);
+    const start = new Date(y, mo - 1, 1);
+    return {
+      label: format(start, 'MMM yyyy', { locale: fr }),
+      selfConsumed: Math.max(0, v.produced - v.exported),
+      exported: v.exported,
+    };
   });
 }
