@@ -4,6 +4,7 @@ import { EnergyData } from '../types/energy';
 import { useTheme, plotThemeColors } from '../context/ThemeContext';
 import { filterBySeason, type SeasonFilter } from '../utils/dataProcessing';
 import { formatFrInt, formatFr1, formatFr2 } from '../utils/formatNumber';
+import { EXPORT_PRICE_EUR_PER_KWH } from '../utils/constants';
 
 type BilanType = 'total' | 'jour' | 'semaine' | 'mois';
 
@@ -74,32 +75,68 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
     const imported      = totalImported / divisor;
     const selfConsumed  = Math.max(0, totalProduced - totalExported) / divisor;
     const importCost    = (totalImported * electricityPrice) / divisor;
+    const selfSavingsEur = selfConsumed * electricityPrice;
+    const consumedValueEur = consumed * electricityPrice;
+    const exportRevenueEur = exported * EXPORT_PRICE_EUR_PER_KWH;
 
     const fmt = (n: number) => (bilanType === 'total' ? formatFrInt(n) : formatFr1(n));
 
-    const trace: Plotly.Data = {
-      x: [produced, selfConsumed, consumed, exported, imported],
+    const eur = (n: number) => formatFr2(n);
+    const pt = plotThemeColors(isDark);
+    const priceLbl = eur(electricityPrice);
+    const exportLbl = eur(EXPORT_PRICE_EUR_PER_KWH);
+
+    const barX = [produced, selfConsumed, consumed, exported, imported];
+    const maxBar = Math.max(...barX, 1e-9);
+    // Sur barre courte, Plotly réduit le texte "inside" à une taille minuscule → label à l'extérieur
+    const narrowFrac = 0.22;
+    const textposition = barX.map((v) =>
+      v / maxBar < narrowFrac ? ('outside' as const) : ('inside' as const)
+    );
+    const outsideLabelColor = isDark ? '#e2e8f0' : '#0f172a';
+    const hasOutside = textposition.some((p) => p === 'outside');
+
+    /**
+     * textfont : base obligatoire pour y() dans Plotly (fusion inside/outside).
+     * constraintext 'none' : sans ça Plotly scale le SVG (transform) pour le texte *inside* seulement,
+     * le texte *outside* reste à l’échelle 1 → paraît plus gros que les autres (même font-size déclarée).
+     */
+    const trace = {
+      x: barX,
       y: ['Produit', 'Autoconsommé', 'Consommé', 'Exporté', 'Importé'],
-      type: 'bar',
-      orientation: 'h',
+      type: 'bar' as const,
+      orientation: 'h' as const,
+      constraintext: 'none' as const,
       marker: { color: ['#22c55e', '#4ade80', '#38bdf8', '#f59e0b', '#f87171'] },
       text: [
         `${fmt(produced)} kWh`,
-        `${fmt(selfConsumed)} kWh`,
-        `${fmt(consumed)} kWh`,
-        `${fmt(exported)} kWh`,
-        `${fmt(imported)} kWh (${formatFr2(importCost)} €)`,
+        `${fmt(selfConsumed)} kWh (${eur(selfSavingsEur)} €)`,
+        `${fmt(consumed)} kWh (${eur(consumedValueEur)} €)`,
+        `${fmt(exported)} kWh (${eur(exportRevenueEur)} €)`,
+        `${fmt(imported)} kWh (${eur(importCost)} €)`,
       ],
-      textposition: 'auto',
-      hovertemplate: '<b>%{y}</b><br>%{x:.1f} kWh<extra></extra>',
-    };
-
-    const pt = plotThemeColors(isDark);
+      // Plotly accepte un tableau par barre ; les types @types/plotly sont incomplets
+      textposition: textposition as unknown as 'inside',
+      textfont: {
+        family: 'DM Sans, sans-serif',
+        size: 12,
+      },
+      insidetextfont: { color: '#0f172a' },
+      outsidetextfont: { color: outsideLabelColor },
+      customdata: [
+        '',
+        `<br>Économies : ${eur(selfSavingsEur)} € · ${priceLbl} €/kWh`,
+        `<br>Indicatif conso. : ${eur(consumedValueEur)} € · ${priceLbl} €/kWh`,
+        `<br>Revenu export : ${eur(exportRevenueEur)} € · ${exportLbl} €/kWh`,
+        `<br>Coût import : ${eur(importCost)} € · ${priceLbl} €/kWh`,
+      ],
+      hovertemplate: '<b>%{y}</b><br>%{x:.1f} kWh%{customdata}<extra></extra>',
+    } as unknown as Plotly.Data;
     Plotly.react(ref.current, [trace], {
       paper_bgcolor: pt.paper,
       plot_bgcolor: pt.plot,
       separators: pt.separators,
-      font: { color: pt.text, family: 'DM Sans' },
+      font: { color: pt.text, family: 'DM Sans, sans-serif', size: 11 },
       xaxis: {
         title: { text: xLabel, font: { color: pt.text } },
         gridcolor: pt.grid,
@@ -112,7 +149,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         automargin: true,
         tickfont: { size: 11 },
       },
-      margin: { l: 24, r: 20, t: 20, b: 40 },
+      margin: { l: 24, r: hasOutside ? 56 : 28, t: 20, b: 40 },
       bargap: 0.4,
       showlegend: false, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
@@ -157,7 +194,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
           Aucune donnée pour cette saison dans la période chargée.
         </div>
       ) : (
-        <div ref={ref} style={{ width: '100%', height: 220 }} />
+        <div className="plot-bilan-energie" ref={ref} style={{ width: '100%', height: 220 }} />
       )}
     </div>
   );

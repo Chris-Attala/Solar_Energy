@@ -48,6 +48,30 @@ export function ChartEnergyBreakdown({ data }: Props) {
       e >= minKwhLabel && pctExp[i] > 0 ? `${pctExp[i]}\u202f%` : ''
     );
 
+    /**
+     * Texte "outside" uniquement si la couche export est *visuellement* courte sur le graphique
+     * (hauteur export / plus haute barre). Sinon 19 % d’une grosse barre passait encore en outside
+     * car 19 % < 22 % de la pile — libellé tronqué en haut du cadre.
+     */
+    const maxStackKwh = Math.max(
+      ...self.map((s, i) => s + exp[i]),
+      1e-9
+    );
+    /** En dessous de ~12 % de l’échelle Y, Plotly compresse trop le texte "inside" */
+    const narrowOnChartFrac = 0.12;
+    const outsideLbl = isDark ? '#e2e8f0' : '#0f172a';
+    const textpositionExp = exp.map((e, i) => {
+      const t = self[i] + e;
+      const show = t > 0 && e >= minKwhLabel && pctExp[i] > 0;
+      if (!show) return 'inside' as const;
+      const heightVsTallestBar = e / maxStackKwh;
+      return heightVsTallestBar < narrowOnChartFrac ? ('outside' as const) : ('inside' as const);
+    });
+    const exportTextColors = textpositionExp.map((pos) =>
+      pos === 'outside' ? outsideLbl : '#0f172a'
+    );
+    const hasOutsideExp = textpositionExp.some((p) => p === 'outside');
+
     const traces: Plotly.Data[] = [
       {
         type: 'bar',
@@ -69,9 +93,10 @@ export function ChartEnergyBreakdown({ data }: Props) {
         x: labels,
         y: exp,
         text: textExp,
-        textposition: 'inside',
+        // Plotly accepte un tableau ; les types sont incomplets
+        textposition: textpositionExp as unknown as 'inside',
         insidetextanchor: 'middle',
-        textfont: { color: '#0f172a', size: 12, family: 'DM Sans' },
+        textfont: { color: exportTextColors, size: 12, family: 'DM Sans' },
         marker: { color: '#f59e0b' },
         customdata: pctExp,
         hovertemplate:
@@ -86,7 +111,7 @@ export function ChartEnergyBreakdown({ data }: Props) {
       separators: pt.separators,
       font: { color: pt.text, family: 'DM Sans', size: 11 },
       barmode: 'stack',
-      margin: { l: 48, r: 16, t: 8, b: 72 },
+      margin: { l: 48, r: 16, t: hasOutsideExp ? 48 : 8, b: 72 },
       xaxis: {
         gridcolor: pt.grid,
         color: pt.text,
