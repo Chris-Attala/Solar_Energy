@@ -101,12 +101,11 @@ html.light ::-webkit-scrollbar-thumb {
   background: #94a3b8;
 }
 
-/* Bilan : filet de secours (trace : constraintext none + textfont pour aligner inside/outside) */
+/* Bilan : police / graisse (pas de font-size ici : le trace Plotly gère 10–12px selon l’écran) */
 .plot-bilan-energie .main-svg g.bartext-inside text,
 .plot-bilan-energie .main-svg g.bartext-inside tspan,
 .plot-bilan-energie .main-svg g.bartext-outside text,
 .plot-bilan-energie .main-svg g.bartext-outside tspan {
   font-family: "DM Sans", sans-serif !important;
-  font-size: 12px !important;
   font-weight: 400 !important;
 }
