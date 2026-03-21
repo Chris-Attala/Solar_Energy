@@ -4,11 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/sun.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EMA Solar Dashboard — Mandelieu-la-Napoule</title>
+    <title>SolaCris — Mandelieu-la-Napoule</title>
     <meta name="description" content="Dashboard analytique pour installation solaire EMA/APsystems 12 kWc à Mandelieu-la-Napoule" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script>
+      if (localStorage.getItem('ema-theme') === 'light') {
+        document.documentElement.classList.add('light');
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

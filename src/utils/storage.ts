@@ -46,7 +46,7 @@ export async function saveDataToCloud(data: EnergyData[], fileName: string): Pro
     fileName,
     uploadedAt: new Date().toISOString(),
     rows: data.map((d) => ({
-      date: dateToLocalString(d.date),
+      date: d.dateKey ?? dateToLocalString(d.date),
       produced: d.produced,
       consumed: d.consumed,
       exported: d.exported,
@@ -91,6 +91,7 @@ export async function loadDataFromCloud(): Promise<{ data: EnergyData[]; fileNam
       fileName: payload.fileName,
       data: payload.rows.map((r) => ({
         date: parseLocalDate(r.date),
+        dateKey: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : undefined,
         produced: r.produced,
         consumed: r.consumed,
         exported: r.exported,

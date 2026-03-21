@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import Plotly from 'plotly.js-dist-min';
 import { MonthlyProjection } from '../types/energy';
+import { useTheme, plotThemeColors } from '../context/ThemeContext';
+import { MONTHLY_PROJECTION_ARCHIVE_YEARS } from '../utils/openMeteo';
 
 interface Props {
   monthlyProjections: MonthlyProjection[];
   avgDailyConsumption: number;
-  electricityPrice: number;
 }
 
 const SEASON_COLORS: Record<number, string> = {
@@ -14,15 +15,14 @@ const SEASON_COLORS: Record<number, string> = {
   10: '#f97316', 11: '#38bdf8',
 };
 
-export function Chart12Months({ monthlyProjections, avgDailyConsumption, electricityPrice }: Props) {
+export function Chart12Months({ monthlyProjections, avgDailyConsumption }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!ref.current || monthlyProjections.length === 0) return;
 
-    const bg   = '#0d1520';
-    const text = '#94a3b8';
-    const grid = '#1e293b';
+    const pt = plotThemeColors(isDark);
 
     const months     = monthlyProjections.map(m => m.month);
     const production = monthlyProjections.map(m => m.production);
@@ -50,7 +50,7 @@ export function Chart12Months({ monthlyProjections, avgDailyConsumption, electri
         type: 'scatter',
         mode: 'lines',
         name: 'Consommation mensuelle (kWh)',
-        line: { color: '#94a3b8', width: 2, dash: 'dot' },
+        line: { color: pt.text, width: 2, dash: 'dot' },
         hovertemplate: '<b>%{x}</b><br>Conso. : %{y:.0f} kWh<extra></extra>',
       },
       {
@@ -66,14 +66,15 @@ export function Chart12Months({ monthlyProjections, avgDailyConsumption, electri
     ];
 
     Plotly.react(ref.current, traces, {
-      paper_bgcolor: bg,
-      plot_bgcolor:  bg,
-      font: { color: text, family: 'DM Sans' },
-      xaxis: { gridcolor: grid, color: text },
+      paper_bgcolor: pt.paper,
+      plot_bgcolor: pt.plot,
+      separators: pt.separators,
+      font: { color: pt.text, family: 'DM Sans' },
+      xaxis: { gridcolor: pt.grid, color: pt.text },
       yaxis: {
-        title: { text: 'Énergie (kWh)', font: { color: text } },
-        gridcolor: grid,
-        tickfont: { color: text },
+        title: { text: 'Énergie (kWh)', font: { color: pt.text } },
+        gridcolor: pt.grid,
+        tickfont: { color: pt.text },
         zeroline: false,
       },
       yaxis2: {
@@ -91,15 +92,17 @@ export function Chart12Months({ monthlyProjections, avgDailyConsumption, electri
       autosize: true,
     }, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false as const });
 
-  }, [monthlyProjections, avgDailyConsumption, electricityPrice]);
+  }, [monthlyProjections, avgDailyConsumption, isDark]);
 
   return (
     <div className="card p-5 mb-8">
-      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-1 font-display">
+      <h3 className="text-sm font-bold uppercase tracking-wider text-theme-secondary mb-1 font-display">
         Projection 12 prochains mois
       </h3>
-      <p className="text-xs text-slate-500 mb-4">
-        Barres : production projetée · Pointillés : votre consommation mensuelle · Ligne verte : économies
+      <p className="text-xs text-theme-muted mb-4">
+        Barres : kWh <strong className="text-theme-secondary">prévus</strong> (moyenne {MONTHLY_PROJECTION_ARCHIVE_YEARS}{' '}
+        ans, même mois, Open-Meteo × <strong className="text-theme-secondary">rendement mesuré</strong> sur votre passé) ·
+        pointillés : conso. · vert : économies (€)
       </p>
       <div ref={ref} style={{ width: '100%', height: 340 }} />
     </div>

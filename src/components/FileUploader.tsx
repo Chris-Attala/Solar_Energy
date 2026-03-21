@@ -65,8 +65,16 @@ export function FileUploader({ onDataLoaded, data, fileName, cloudSynced }: Prop
         onDrop={onDrop}
         onDragOver={onDragOver}
         className={`rounded-2xl border-2 border-dashed transition-colors ${
-          loaded ? 'border-[#22c55e]/50 bg-[#22c55e]/5' : 'border-slate-700 bg-[#0d1520] hover:border-slate-600'
+          loaded ? 'border-[#22c55e]/50 bg-[#22c55e]/5' : 'hover:opacity-90'
         }`}
+        style={
+          loaded
+            ? undefined
+            : {
+                borderColor: 'var(--border-subtle)',
+                background: 'var(--bg-card)',
+              }
+        }
       >
         <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
           <input
@@ -94,12 +102,12 @@ export function FileUploader({ onDataLoaded, data, fileName, cloudSynced }: Prop
           </label>
           <div className="flex-1 min-w-0 text-center sm:text-left">
             {loaded && message && (
-              <p className="text-slate-300 text-sm font-medium">
+              <p className="text-theme text-sm font-medium">
                 {message}
               </p>
             )}
             {!loaded && (
-              <p className="text-slate-500 text-sm">
+              <p className="text-theme-secondary text-sm">
                 .xls · .xlsx · .csv — Colonnes : Date, Produced, Consumed, Exported, Imported, Charged, Discharged
               </p>
             )}

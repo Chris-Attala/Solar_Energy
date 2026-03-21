@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import Plotly from 'plotly.js-dist-min';
 import { getSeasonalBreakdown } from '../utils/dataProcessing';
 import { EnergyData } from '../types/energy';
+import { useTheme, plotThemeColors } from '../context/ThemeContext';
 
 interface Props {
   data: EnergyData[];
@@ -10,6 +11,7 @@ interface Props {
 
 export function ChartSeasonal({ data, electricityPrice }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
@@ -64,15 +66,17 @@ export function ChartSeasonal({ data, electricityPrice }: Props) {
       },
     ];
 
+    const pt = plotThemeColors(isDark);
     Plotly.react(ref.current, traces, {
-      paper_bgcolor: '#0d1520',
-      plot_bgcolor:  '#0d1520',
-      font: { color: '#94a3b8', family: 'DM Sans' },
-      xaxis: { gridcolor: '#1e293b', color: '#94a3b8' },
+      paper_bgcolor: pt.paper,
+      plot_bgcolor: pt.plot,
+      separators: pt.separators,
+      font: { color: pt.text, family: 'DM Sans' },
+      xaxis: { gridcolor: pt.grid, color: pt.text },
       yaxis: {
-        title: { text: 'kWh / €', font: { color: '#94a3b8' } },
-        gridcolor: '#1e293b',
-        tickfont: { color: '#94a3b8' },
+        title: { text: 'Énergie (kWh)', font: { color: pt.text } },
+        gridcolor: pt.grid,
+        tickfont: { color: pt.text },
         zeroline: false,
       },
       margin: { l: 55, r: 20, t: 20, b: 55 },
@@ -85,7 +89,7 @@ export function ChartSeasonal({ data, electricityPrice }: Props) {
       autosize: true,
     }, { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false as const });
 
-  }, [data, electricityPrice]);
+  }, [data, electricityPrice, isDark]);
 
   // Vérifier s'il y a des estimations
   const breakdown   = getSeasonalBreakdown(data, electricityPrice);
@@ -93,10 +97,10 @@ export function ChartSeasonal({ data, electricityPrice }: Props) {
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-1 font-display">
+      <h3 className="text-sm font-bold uppercase tracking-wider text-theme-secondary mb-1 font-display">
         Par saison
       </h3>
-      <p className="text-xs text-slate-500 mb-4">
+      <p className="text-xs text-theme-muted mb-4">
         Production (+ économies au survol) · Consommation · Importé
         {hasEstimate && <span className="ml-2">· * = extrapolé sur la saison entière</span>}
       </p>

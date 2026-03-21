@@ -2,12 +2,12 @@
  * Open-Meteo API — archive + forecast.
  * 
  * Projection calibrée sur données réelles :
- * - PR réel = moyenne(production_jour / radiation_estimée_jour) sur tous les jours du CSV
- * - Si pas assez de données (<7 jours), fallback sur PR théorique 0.78
- * - Plus vous importez de données, plus le PR réel est précis
+ * - « PR » (Performance Ratio) = rendement : production EMA / production théorique depuis l’irradiance (sans ce facteur).
+ * - PR mesuré = moyenne de ce rapport sur les jours du CSV (voir calcRealPR). Si moins de 7 jours utiles → PR théorique 0,78.
  */
 import { OpenMeteoData, MonthlyProjection } from '../types/energy';
-import { format, addMonths, getMonth, startOfMonth, endOfMonth, subDays, getDaysInMonth } from 'date-fns';
+import { addMonths, getMonth, startOfMonth, endOfMonth, subYears, getDaysInMonth } from 'date-fns';
+import { dateToParisYmd } from './parisDate';
 
 export const LAT = 43.55;
 export const LON = 7.0;
@@ -25,18 +25,23 @@ function parseLocalDate(iso: string): Date {
 /**
  * Production théorique brute par MJ/m² (sans PR — le PR est appliqué séparément)
  */
-function rawProductionPerMJ(mjPerM2: number): number {
+export function rawProductionPerMJ(mjPerM2: number): number {
   const kwhPerM2 = mjPerM2 / 3.6;
   return kwhPerM2 * TILT_FACTOR * AZIMUTH_FACTOR * KWC;
 }
 
+/** kWh/jour = modèle physique (soleil) × rendement mesuré (PR) sur votre passé */
+export function calibratedDailyProduction(mjPerM2: number, pr: number): number {
+  if (mjPerM2 <= 0) return 0;
+  return rawProductionPerMJ(mjPerM2) * pr;
+}
+
 /**
- * Calcule le PR réel à partir des données CSV + données Open-Meteo historiques.
- * PR réel = moyenne de (production_réelle_jour / production_théorique_jour)
- * Retourne null si pas assez de données.
+ * Rendement mesuré (Performance Ratio) à partir du CSV + irradiance archive.
+ * = moyenne tronquée de (production EMA du jour / production théorique même jour depuis le soleil).
  */
 export async function calcRealPR(
-  csvData: { date: Date; produced: number }[]
+  csvData: { date: Date; produced: number; dateKey?: string }[]
 ): Promise<{ pr: number; calibratedDays: number }> {
   if (csvData.length < MIN_DAYS_FOR_CALIBRATION) {
     return { pr: PR_THEORIQUE, calibratedDays: csvData.length };
@@ -51,11 +56,11 @@ export async function calcRealPR(
 
     // Map date → radiation
     const radMap = new Map<string, number>();
-    historical.forEach(d => radMap.set(format(d.date, 'yyyy-MM-dd'), d.solarRadiation));
+    historical.forEach(d => radMap.set(dateToParisYmd(d.date), d.solarRadiation));
 
     const ratios: number[] = [];
     csvData.forEach(d => {
-      const key = format(d.date, 'yyyy-MM-dd');
+      const key = d.dateKey ?? dateToParisYmd(d.date);
       const rad = radMap.get(key);
       if (rad && rad > 2) { // ignore jours quasi sans soleil (< 2 MJ/m²)
         const theoreticalNoPR = rawProductionPerMJ(rad);
@@ -84,8 +89,8 @@ export async function calcRealPR(
 }
 
 export async function fetchHistoricalIrradiance(start: Date, end: Date): Promise<OpenMeteoData[]> {
-  const s = format(start, 'yyyy-MM-dd');
-  const e = format(end, 'yyyy-MM-dd');
+  const s = dateToParisYmd(start);
+  const e = dateToParisYmd(end);
   const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}&start_date=${s}&end_date=${e}&daily=shortwave_radiation_sum&timezone=Europe%2FParis`;
   try {
     const res = await fetch(url);
@@ -106,8 +111,9 @@ export async function fetchHistoricalIrradiance(start: Date, end: Date): Promise
   }
 }
 
-export async function fetchForecastIrradiance(days = 14): Promise<OpenMeteoData[]> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=shortwave_radiation_sum&timezone=Europe%2FParis&forecast_days=${days}`;
+/** Max 16 jours sur l’API gratuite ; pour un graphique jusqu’à J+14 il faut > 14 (sinon dernier jour sans donnée). */
+export async function fetchForecastIrradiance(days = 16): Promise<OpenMeteoData[]> {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=shortwave_radiation_sum&timezone=Europe%2FParis&forecast_days=${Math.min(days, 16)}`;
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -129,6 +135,42 @@ export async function fetchForecastIrradiance(days = 14): Promise<OpenMeteoData[
 
 const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
+/** Nombre d’années archive à moyenner pour chaque mois projeté (même mois civil : N−1, N−2, N−3…). */
+export const MONTHLY_PROJECTION_ARCHIVE_YEARS = 3;
+
+/** Somme kWh sur une plage archive (un mois) ; null si échec API ou pas de données. */
+async function fetchArchiveRangeProductionKwh(
+  refStart: Date,
+  refEnd: Date,
+  realPR: number
+): Promise<number | null> {
+  const s = dateToParisYmd(refStart);
+  const e = dateToParisYmd(refEnd);
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}&start_date=${s}&end_date=${e}&daily=shortwave_radiation_sum&timezone=Europe%2FParis`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const times = json.daily.time as string[];
+    const rads = json.daily.shortwave_radiation_sum as number[] | undefined;
+    if (!times.length) return null;
+    let total = 0;
+    for (let idx = 0; idx < times.length; idx++) {
+      const rad = rads?.[idx] ?? 0;
+      total += rawProductionPerMJ(rad) * realPR;
+    }
+    return total;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Projection mois par mois : pour chaque mois futur M, on prend les **mêmes mois civils**
+ * sur les **N dernières années** (voir `MONTHLY_PROJECTION_ARCHIVE_YEARS`) dans l’archive Open-Meteo,
+ * on calcule la production mensuelle (Σ rawProductionPerMJ × realPR) pour chaque année, puis
+ * **moyenne arithmétique** des totaux mensuels.
+ */
 export async function fetchMonthlyProjections(
   electricityPrice: number,
   autoconsRate: number,
@@ -138,41 +180,32 @@ export async function fetchMonthlyProjections(
   const results: MonthlyProjection[] = [];
 
   for (let i = 0; i < 12; i++) {
-    const target   = addMonths(today, i);
+    const target = addMonths(today, i);
     const monthIdx = getMonth(target);
-    const refStart = subDays(startOfMonth(target), 365);
-    const refEnd   = subDays(endOfMonth(target), 365);
+    const mStart = startOfMonth(target);
+    const mEnd = endOfMonth(target);
+    const daysInMonth = getDaysInMonth(target);
 
-    try {
-      // Radiation de l'année passée pour ce mois
-      const s = format(refStart, 'yyyy-MM-dd');
-      const e = format(refEnd, 'yyyy-MM-dd');
-      const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}&start_date=${s}&end_date=${e}&daily=shortwave_radiation_sum&timezone=Europe%2FParis`;
-      const res  = await fetch(url);
-      const json = await res.json();
+    const yearTotals = await Promise.all(
+      Array.from({ length: MONTHLY_PROJECTION_ARCHIVE_YEARS }, (_, j) => {
+        const yOff = j + 1;
+        const refStart = subYears(mStart, yOff);
+        const refEnd = subYears(mEnd, yOff);
+        return fetchArchiveRangeProductionKwh(refStart, refEnd, realPR);
+      })
+    );
 
-      let totalProd = 0;
-      if (json.daily?.time) {
-        (json.daily.time as string[]).forEach((_: string, i: number) => {
-          const rad = json.daily.shortwave_radiation_sum[i] ?? 0;
-          // Utilise le PR réel calibré sur vos données
-          totalProd += rawProductionPerMJ(rad) * realPR;
-        });
-      }
+    const valid = yearTotals.filter((v): v is number => v != null && Number.isFinite(v));
+    const totalProd = valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : 0;
 
-      const selfConsumed = totalProd * autoconsRate;
-      const daysInMonth  = getDaysInMonth(target);
-      results.push({
-        month:      MONTH_NAMES[monthIdx],
-        monthIndex: monthIdx,
-        production: totalProd,
-        savings:    selfConsumed * electricityPrice,
-        daysInMonth,
-      });
-    } catch {
-      const daysInMonth = getDaysInMonth(addMonths(today, i));
-      results.push({ month: MONTH_NAMES[monthIdx], monthIndex: monthIdx, production: 0, savings: 0, daysInMonth });
-    }
+    const selfConsumed = totalProd * autoconsRate;
+    results.push({
+      month: MONTH_NAMES[monthIdx],
+      monthIndex: monthIdx,
+      production: totalProd,
+      savings: selfConsumed * electricityPrice,
+      daysInMonth,
+    });
   }
   return results;
 }

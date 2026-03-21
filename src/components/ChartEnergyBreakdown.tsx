@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Plotly from 'plotly.js-dist-min';
 import { EnergyData } from '../types/energy';
+import { useTheme, plotThemeColors } from '../context/ThemeContext';
 
 interface Props {
   data: EnergyData[];
@@ -8,6 +9,7 @@ interface Props {
 
 export function ChartEnergyBreakdown({ data }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!ref.current || data.length === 0) return;
@@ -33,24 +35,26 @@ export function ChartEnergyBreakdown({ data }: Props) {
       hovertemplate: '<b>%{label}</b><br>%{value:.0f} kWh (%{percent})<extra></extra>',
     };
 
+    const pt = plotThemeColors(isDark);
     const layout: Partial<Plotly.Layout> = {
-      paper_bgcolor: '#0d1520',
-      plot_bgcolor: '#0d1520',
-      font: { color: '#94a3b8', family: 'DM Sans', size: 11 },
+      paper_bgcolor: pt.paper,
+      plot_bgcolor: pt.plot,
+      separators: pt.separators,
+      font: { color: pt.text, family: 'DM Sans', size: 11 },
       margin: { l: 15, r: 15, t: 15, b: 15 },
       showlegend: false, dragmode: false as unknown as Plotly.Layout['dragmode'],
       autosize: true,
     };
 
     Plotly.react(ref.current, [trace], layout, { responsive: true, displayModeBar: false, staticPlot: false, scrollZoom: false, doubleClick: false, showTips: false, modeBarButtonsToRemove: ["zoom2d","pan2d","select2d","lasso2d","zoomIn2d","zoomOut2d","autoScale2d","resetScale2d"] });
-  }, [data]);
+  }, [data, isDark]);
 
   return (
     <div className="card p-5">
-      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-1 font-display">
+      <h3 className="text-sm font-bold uppercase tracking-wider text-theme-secondary mb-1 font-display">
         Répartition
       </h3>
-      <p className="text-xs text-slate-500 mb-4">Autoconsommé · Exporté (kWh)</p>
+      <p className="text-xs text-theme-muted mb-4">Autoconsommé · Exporté (kWh)</p>
       <div ref={ref} style={{ width: '100%', height: 260 }} />
     </div>
   );

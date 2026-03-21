@@ -1,4 +1,6 @@
 import { Sun, Euro, TrendingUp, ArrowUpRight, ArrowDownLeft, BarChart2 } from 'lucide-react';
+import { formatFrInt, formatFr1, formatFr2 } from '../utils/formatNumber';
+import { EXPORT_PRICE_EUR_PER_KWH } from '../utils/constants';
 
 interface Props {
   avgDailyProduction: number;
@@ -8,6 +10,7 @@ interface Props {
   totalExported: number;
   totalImported: number;
   periodSavings: number;
+  selfConsumedKwh: number;
   importCost: number;
   netCostBalance: number;
   periodDays: number;
@@ -21,23 +24,21 @@ interface Props {
   bestDaySelfSufficiency: number;
 }
 
-const EXPORT_PRICE = 0.04;
-
 export function KPICards({
   avgDailyProduction, annualSavings, monthlyNetBalance, selfSufficiencyPerDay,
-  totalExported, totalImported, periodSavings, importCost, netCostBalance,
+  totalExported, totalImported, periodSavings, selfConsumedKwh, importCost, netCostBalance,
   bestDayKwh, bestDayDate, bestDayConsumed, bestDayExported, bestDayImported,
   bestDaySelfConsumed, bestDaySavings, bestDaySelfSufficiency, periodDays,
 }: Props) {
-  const exportRevenue = totalExported * EXPORT_PRICE;
+  const exportRevenue = totalExported * EXPORT_PRICE_EUR_PER_KWH;
 
   const cards = [
-    { title: 'Production moy./j', value: avgDailyProduction.toFixed(1), unit: 'kWh/j', subtitle: 'Sur la période chargée', icon: Sun, color: '#22c55e' },
-    { title: 'Autosuffisance',    value: selfSufficiencyPerDay.toFixed(0), unit: '%', subtitle: 'Couverte par le solaire', icon: TrendingUp, color: '#38bdf8' },
-    { title: 'Économies annuelles', value: annualSavings.toFixed(0), unit: '€', subtitle: 'Sur les 12 prochains mois', icon: Euro, color: '#f59e0b' },
-    { title: 'Exporté réseau',    value: totalExported.toFixed(0), unit: 'kWh', subtitle: `≈ ${exportRevenue.toFixed(0)} € à 0.04 €/kWh`, icon: ArrowUpRight, color: '#f59e0b' },
-    { title: 'Bilan mensuel',     value: monthlyNetBalance >= 0 ? `+${monthlyNetBalance.toFixed(0)}` : monthlyNetBalance.toFixed(0), unit: '€/mois', subtitle: 'Éco. + export − import', icon: BarChart2, color: monthlyNetBalance >= 0 ? '#22c55e' : '#f87171' },
-    { title: 'Importé réseau',    value: periodDays > 0 ? (totalImported / periodDays * 30.44).toFixed(0) : '0', unit: 'kWh/mois', subtitle: `Total : ${totalImported.toFixed(0)} kWh`, icon: ArrowDownLeft, color: '#f87171' },
+    { title: 'Production moy./j', value: formatFr1(avgDailyProduction), unit: 'kWh/j', subtitle: 'Sur la période chargée', icon: Sun, color: '#22c55e' },
+    { title: 'Autosuffisance',    value: formatFrInt(selfSufficiencyPerDay), unit: '%', subtitle: 'Couverte par le solaire', icon: TrendingUp, color: '#38bdf8' },
+    { title: 'Économies annuelles', value: formatFrInt(annualSavings), unit: '€', subtitle: 'Sur les 12 prochains mois', icon: Euro, color: '#f59e0b' },
+    { title: 'Exporté réseau',    value: formatFrInt(totalExported), unit: 'kWh', subtitle: `≈ ${formatFrInt(exportRevenue)} € à 0,04 €/kWh`, icon: ArrowUpRight, color: '#f59e0b' },
+    { title: 'Bilan mensuel',     value: monthlyNetBalance >= 0 ? `+${formatFrInt(monthlyNetBalance)}` : formatFrInt(monthlyNetBalance), unit: '€/mois', subtitle: 'Éco. + export − import', icon: BarChart2, color: monthlyNetBalance >= 0 ? '#22c55e' : '#f87171' },
+    { title: 'Importé réseau',    value: periodDays > 0 ? formatFrInt((totalImported / periodDays) * 30.44) : '0', unit: 'kWh/mois', subtitle: `Total : ${formatFrInt(totalImported)} kWh`, icon: ArrowDownLeft, color: '#f87171' },
   ];
 
   return (
@@ -47,14 +48,14 @@ export function KPICards({
           <div key={c.title} className="card p-3 sm:p-5">
             <div className="flex items-start justify-between gap-1 sm:gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-slate-500 mb-1 leading-tight">
+                <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-theme-secondary mb-1 leading-tight">
                   {c.title}
                 </p>
                 <p className="font-display font-bold leading-tight" style={{ color: c.color }}>
                   <span className="text-base sm:text-2xl">{c.value}</span>
-                  <span className="text-slate-400 font-normal text-[10px] sm:text-base ml-1">{c.unit}</span>
+                  <span className="text-theme-secondary font-normal text-[10px] sm:text-base ml-1">{c.unit}</span>
                 </p>
-                <p className="text-[10px] sm:text-xs text-slate-500 mt-1 leading-snug">{c.subtitle}</p>
+                <p className="text-[10px] sm:text-xs text-theme-secondary mt-1 leading-snug">{c.subtitle}</p>
               </div>
               <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `${c.color}20` }}>
@@ -68,28 +69,42 @@ export function KPICards({
 
       <div className="grid grid-cols-2 gap-3 sm:gap-5 mt-3 sm:mt-5">
         <div className="card p-3 sm:p-5 border-l-4 border-[#f59e0b]/60">
-          <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">
-            Résumé coûts (période)
-          </p>
+          <div className="mb-2">
+            <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-theme-secondary">
+              Résumé coûts (période)
+            </p>
+            {periodDays > 0 && (
+              <p className="text-[9px] sm:text-[10px] text-theme-muted mt-0.5 normal-case tracking-normal">
+                {formatFrInt(periodDays)} jour{periodDays > 1 ? 's' : ''} concerné{periodDays > 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
           <div className="space-y-1.5 text-[10px] sm:text-sm">
             <div className="flex justify-between items-baseline gap-1">
-              <span className="text-slate-400">Économies autoconso.</span>
-              <span className="font-semibold text-[#22c55e] whitespace-nowrap">+{periodSavings.toFixed(2)} €</span>
+              <span className="text-theme-secondary min-w-0 pr-1">
+                Économies autoconso.{' '}
+                <span className="text-theme-muted font-normal">({formatFrInt(selfConsumedKwh)} kWh)</span>
+              </span>
+              <span className="font-semibold text-[#22c55e] whitespace-nowrap">+{formatFr2(periodSavings)} €</span>
             </div>
             <div className="flex justify-between items-baseline gap-1">
-              <span className="text-slate-400 sm:hidden">Export</span>
-              <span className="text-slate-400 hidden sm:inline">Revenu export (0.04 €/kWh)</span>
-              <span className="font-semibold text-[#f59e0b] whitespace-nowrap">+{exportRevenue.toFixed(2)} €</span>
+              <span className="text-theme-secondary sm:hidden">
+                Export ({formatFrInt(totalExported)} kWh à 0,04 €)
+              </span>
+              <span className="text-theme-secondary hidden sm:inline">
+                Revenu export ({formatFrInt(totalExported)} kWh exportés à 0,04 €/kWh)
+              </span>
+              <span className="font-semibold text-[#f59e0b] whitespace-nowrap">+{formatFr2(exportRevenue)} €</span>
             </div>
             <div className="flex justify-between items-baseline gap-1">
-              <span className="text-slate-400 sm:hidden">Coût import</span>
-              <span className="text-slate-400 hidden sm:inline">Coût importé ({totalImported.toFixed(0)} kWh)</span>
-              <span className="font-semibold text-rose-400 whitespace-nowrap">−{importCost.toFixed(2)} €</span>
+              <span className="text-theme-secondary sm:hidden">Coût import</span>
+              <span className="text-theme-secondary hidden sm:inline">Coût importé ({formatFrInt(totalImported)} kWh)</span>
+              <span className="font-semibold text-rose-400 whitespace-nowrap">−{formatFr2(importCost)} €</span>
             </div>
-            <div className="pt-1.5 mt-1.5 border-t border-slate-700 flex justify-between items-baseline">
-              <span className="text-slate-300 font-medium text-[10px] sm:text-sm">Bilan net</span>
+            <div className="pt-1.5 mt-1.5 border-t flex justify-between items-baseline" style={{ borderColor: 'var(--border)' }}>
+              <span className="text-theme font-medium text-[10px] sm:text-sm">Bilan net</span>
               <span className={`font-display font-bold text-sm sm:text-lg ${netCostBalance >= 0 ? 'text-[#22c55e]' : 'text-rose-400'}`}>
-                {netCostBalance >= 0 ? '+' : ''}{netCostBalance.toFixed(2)} €
+                {netCostBalance >= 0 ? '+' : ''}{formatFr2(netCostBalance)} €
               </span>
             </div>
             {(() => {
@@ -97,26 +112,26 @@ export function KPICards({
               const goodPct = total > 0 ? Math.min(100, ((periodSavings + exportRevenue) / total) * 100) : 0;
               return (
                 <div className="mt-2">
-                  <div className="flex h-1.5 rounded-full overflow-hidden bg-slate-800">
+                  <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-input)' }}>
                     <div className="bg-[#22c55e] transition-all" style={{ width: `${goodPct}%` }} />
                     <div className="bg-rose-500/70 flex-1" />
                   </div>
-                  <div className="flex justify-between text-[9px] text-slate-600 mt-1">
-                    <span>Gains {(periodSavings + exportRevenue).toFixed(0)} €</span>
-                    <span>Coûts {importCost.toFixed(0)} €</span>
+                  <div className="flex justify-between text-[9px] text-theme-muted mt-1">
+                    <span>Gains {formatFrInt(periodSavings + exportRevenue)} €</span>
+                    <span>Coûts {formatFrInt(importCost)} €</span>
                   </div>
                 </div>
               );
             })()}
             {periodDays > 0 && (
-              <div className="flex justify-between mt-1.5 pt-1.5 border-t border-slate-800">
+              <div className="flex justify-between mt-1.5 pt-1.5 border-t" style={{ borderColor: 'var(--border)' }}>
                 <div>
-                  <div className="text-[9px] text-slate-600 uppercase tracking-wider">Éco./jour</div>
-                  <div className="text-[10px] sm:text-xs font-semibold text-[#22c55e] whitespace-nowrap">+{((periodSavings + exportRevenue) / periodDays).toFixed(2)} €</div>
+                  <div className="text-[9px] text-theme-muted uppercase tracking-wider">Éco./jour</div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-[#22c55e] whitespace-nowrap">+{formatFr2((periodSavings + exportRevenue) / periodDays)} €</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[9px] text-slate-600 uppercase tracking-wider">Coût/jour</div>
-                  <div className="text-[10px] sm:text-xs font-semibold text-rose-400 whitespace-nowrap">−{(importCost / periodDays).toFixed(2)} €</div>
+                  <div className="text-[9px] text-theme-muted uppercase tracking-wider">Coût/jour</div>
+                  <div className="text-[10px] sm:text-xs font-semibold text-rose-400 whitespace-nowrap">−{formatFr2(importCost / periodDays)} €</div>
                 </div>
               </div>
             )}
@@ -125,25 +140,25 @@ export function KPICards({
 
         <div className="card p-3 sm:p-5 border-l-4 border-[#22c55e]/60">
           <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1 text-slate-500 text-[9px] sm:text-xs font-medium uppercase tracking-wider">
+            <div className="flex items-center gap-1 text-theme-secondary text-[9px] sm:text-xs font-medium uppercase tracking-wider">
               <Sun size={12} /> Meilleur jour
             </div>
-            <span className="text-[9px] sm:text-xs text-slate-500">{bestDayDate}</span>
+            <span className="text-[9px] sm:text-xs text-theme-secondary">{bestDayDate}</span>
           </div>
           <p className="font-display text-base sm:text-2xl font-bold text-[#22c55e] mb-1.5">
-            {bestDayKwh.toFixed(1)} kWh
+            {formatFr1(bestDayKwh)} kWh
           </p>
           <div className="space-y-1 text-[10px] sm:text-xs">
             {[
-              { label: 'Consommé',   value: `${bestDayConsumed.toFixed(1)} kWh`,      color: 'text-slate-300' },
-              { label: 'Autoconso.', value: `${bestDaySelfConsumed.toFixed(1)} kWh`,  color: 'text-[#22c55e]' },
-              { label: 'Exporté',    value: `${bestDayExported.toFixed(1)} kWh`,      color: 'text-amber-400' },
-              { label: 'Importé',    value: `${bestDayImported.toFixed(1)} kWh`,      color: 'text-rose-400' },
-              { label: 'Économies',  value: `${bestDaySavings.toFixed(2)} €`,         color: 'text-[#22c55e]' },
-              { label: 'Autosuff.', value: `${bestDaySelfSufficiency.toFixed(0)} %`,  color: 'text-sky-400' },
+              { label: 'Consommé',   value: `${formatFr1(bestDayConsumed)} kWh`,      color: 'text-theme' },
+              { label: 'Autoconso.', value: `${formatFr1(bestDaySelfConsumed)} kWh`,  color: 'text-[#22c55e]' },
+              { label: 'Exporté',    value: `${formatFr1(bestDayExported)} kWh`,      color: 'text-amber-400' },
+              { label: 'Importé',    value: `${formatFr1(bestDayImported)} kWh`,      color: 'text-rose-400' },
+              { label: 'Économies',  value: `${formatFr2(bestDaySavings)} €`,         color: 'text-[#22c55e]' },
+              { label: 'Autosuff.', value: `${formatFrInt(bestDaySelfSufficiency)} %`,  color: 'text-sky-400' },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex justify-between items-baseline">
-                <span className="text-slate-500">{label}</span>
+                <span className="text-theme-secondary">{label}</span>
                 <span className={`font-semibold ${color}`}>{value}</span>
               </div>
             ))}

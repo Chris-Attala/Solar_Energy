@@ -1,16 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { EnergyData, MonthlyProjection, OpenMeteoData, Granularity } from '../types/energy';
+import { EnergyData, MonthlyProjection, OpenMeteoData } from '../types/energy';
 import {
   fetchHistoricalIrradiance,
   fetchForecastIrradiance,
   fetchMonthlyProjections,
   calcRealPR,
 } from '../utils/openMeteo';
-import {
-  getAutoconsumptionRate,
-  aggregateByGranularity,
-  computePeriodKPIs,
-} from '../utils/dataProcessing';
+import { getAutoconsumptionRate, computePeriodKPIs } from '../utils/dataProcessing';
+import { EXPORT_PRICE_EUR_PER_KWH } from '../utils/constants';
+import { dateToParisYmd } from '../utils/parisDate';
 import { format } from 'date-fns';
 import { KPICards } from './KPICards';
 import { Chart12Months } from './Chart12Months';
@@ -20,15 +18,12 @@ import { ChartEnergyBreakdown } from './ChartEnergyBreakdown';
 import { ChartSeasonal } from './ChartSeasonal';
 import { ChartBilanEnergie } from './ChartBilanEnergie';
 
-const EXPORT_PRICE = 0.04;
-
 interface Props {
   data: EnergyData[];
   electricityPrice: number;
 }
 
 export function Dashboard({ data, electricityPrice }: Props) {
-  const [granularity, setGranularity]   = useState<Granularity>('daily');
   const [expectedData, setExpectedData] = useState<OpenMeteoData[]>([]);
   const [forecastData, setForecastData] = useState<OpenMeteoData[]>([]);
   const [monthlyProj, setMonthlyProj]   = useState<MonthlyProjection[]>([]);
@@ -37,8 +32,7 @@ export function Dashboard({ data, electricityPrice }: Props) {
   const [loading, setLoading]           = useState(true);
 
   const autoconsRate = useMemo(() => getAutoconsumptionRate(data), [data]);
-  const filteredData = useMemo(() => aggregateByGranularity(data, granularity), [data, granularity]);
-  const periodKPIs   = useMemo(() => computePeriodKPIs(data, electricityPrice), [data, electricityPrice]);
+  const periodKPIs = useMemo(() => computePeriodKPIs(data, electricityPrice), [data, electricityPrice]);
 
 
 
@@ -48,7 +42,7 @@ export function Dashboard({ data, electricityPrice }: Props) {
   );
 
   const importCost     = periodKPIs.totalImported * electricityPrice;
-  const exportRevenue  = periodKPIs.totalExported * EXPORT_PRICE;
+  const exportRevenue  = periodKPIs.totalExported * EXPORT_PRICE_EUR_PER_KWH;
   const netCostBalance = periodKPIs.totalSavings + exportRevenue - importCost;
 
   // Moyenne mensuelle pondérée : bilan/jour × 30.44 jours/mois
@@ -89,7 +83,8 @@ export function Dashboard({ data, electricityPrice }: Props) {
       // 2. Charger toutes les données avec le PR calibré
       Promise.all([
         fetchHistoricalIrradiance(minDate, maxDate),
-        fetchForecastIrradiance(14),
+        // 16 j. max API : couvre J+14 alors que forecast_days=14 n’allait que jusqu’à J+13
+        fetchForecastIrradiance(16),
         fetchMonthlyProjections(electricityPrice, autoconsRate, pr),
       ])
         .then(([hist, fore, monthly]) => {
@@ -106,7 +101,7 @@ export function Dashboard({ data, electricityPrice }: Props) {
 
   if (loading && monthlyProj.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
+      <div className="flex items-center justify-center py-16 text-theme-secondary text-sm">
         Chargement des données Open-Meteo…
       </div>
     );
@@ -131,16 +126,17 @@ export function Dashboard({ data, electricityPrice }: Props) {
       {/* Note discrète jours suspects */}
       {(() => {
         if (expectedData.length === 0) return null;
-        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        const expectedMap = new Map(expectedData.map(d => [fmt(d.date), d.expectedProduction]));
-        const suspiciousDays = data.filter(d => {
-          const key = fmt(d.date);
+        const expectedMap = new Map(
+          expectedData.map((d) => [dateToParisYmd(d.date), d.expectedProduction])
+        );
+        const suspiciousDays = data.filter((d) => {
+          const key = d.dateKey ?? dateToParisYmd(d.date);
           const expected = expectedMap.get(key);
           return expected && expected > 5 && d.produced < expected * 0.70;
         });
         if (suspiciousDays.length === 0) return null;
         return (
-          <p className="text-[11px] text-slate-600 mb-3 px-1">
+          <p className="text-[11px] text-theme-muted mb-3 px-1">
             ⚠ {suspiciousDays.length} jour{suspiciousDays.length > 1 ? 's' : ''} avec production faible vs ensoleillement Open-Meteo — possible déconnexion EMA
           </p>
         );
@@ -154,6 +150,7 @@ export function Dashboard({ data, electricityPrice }: Props) {
         totalExported={periodKPIs.totalExported}
         totalImported={periodKPIs.totalImported}
         periodSavings={periodKPIs.totalSavings}
+        selfConsumedKwh={periodKPIs.selfConsumedKwh}
         importCost={importCost}
         netCostBalance={netCostBalance}
         periodDays={periodKPIs.days}
@@ -167,17 +164,13 @@ export function Dashboard({ data, electricityPrice }: Props) {
         bestDaySelfSufficiency={bestDay.selfSufficiency}
       />
 
-      <Chart12Months
-        monthlyProjections={monthlyProj}
-        avgDailyConsumption={avgDailyConsumption}
-        
-        electricityPrice={electricityPrice}
-      />
+      <Chart12Months monthlyProjections={monthlyProj} avgDailyConsumption={avgDailyConsumption} />
 
       <ChartProductionOverview
         data={data}
         expectedData={expectedData}
         forecastData={forecastData}
+        realPR={realPR}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

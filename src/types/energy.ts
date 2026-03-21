@@ -1,5 +1,7 @@
 export interface EnergyData {
   date: Date;
+  /** YYYY-MM-DD tel que dans le fichier (évite décalages fuseau vs Open-Meteo) */
+  dateKey?: string;
   produced: number;
   consumed: number;
   exported: number;
@@ -30,6 +32,8 @@ export interface PeriodKPIs {
   avgDailyProduction: number;
   autoconsumption: number;
   selfSufficiency: number;
+  /** kWh autoconsommés sur la période (Σ max(0, produit − export) par jour ≈ total produit − total export agrégé) */
+  selfConsumedKwh: number;
   totalSavings: number;
   totalExported: number;
   totalImported: number;

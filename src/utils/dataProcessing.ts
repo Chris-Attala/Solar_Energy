@@ -11,34 +11,58 @@ function parseNum(v: unknown): number {
   return parseFloat(String(v).replace(',', '.').replace(/\s/g, '')) || 0;
 }
 
-function parseFlexDate(raw: unknown): Date | null {
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+export type ParsedFlexDate = { date: Date; dateKey: string };
+
+/** Date + clé YYYY-MM-DD issue des entiers du fichier (pas d’interprétation fuseau). */
+function parseFlexDate(raw: unknown): ParsedFlexDate | null {
   if (!raw) return null;
-  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
+  if (raw instanceof Date) {
+    if (isNaN(raw.getTime())) return null;
+    const y = raw.getFullYear();
+    const m = raw.getMonth() + 1;
+    const d = raw.getDate();
+    return { date: raw, dateKey: `${y}-${pad2(m)}-${pad2(d)}` };
+  }
   const s = String(raw).trim();
 
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
   if (iso) {
-    const d = new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10));
-    return isNaN(d.getTime()) ? null : d;
+    const y = parseInt(iso[1], 10);
+    const mo = parseInt(iso[2], 10);
+    const da = parseInt(iso[3], 10);
+    const date = new Date(y, mo - 1, da);
+    return isNaN(date.getTime()) ? null : { date, dateKey: `${y}-${pad2(mo)}-${pad2(da)}` };
   }
 
   const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (dmy) {
-    const d = new Date(parseInt(dmy[3], 10), parseInt(dmy[2], 10) - 1, parseInt(dmy[1], 10));
-    return isNaN(d.getTime()) ? null : d;
+    const da = parseInt(dmy[1], 10);
+    const mo = parseInt(dmy[2], 10);
+    const y = parseInt(dmy[3], 10);
+    const date = new Date(y, mo - 1, da);
+    return isNaN(date.getTime()) ? null : { date, dateKey: `${y}-${pad2(mo)}-${pad2(da)}` };
   }
 
   const mdy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
   if (mdy) {
     const year = mdy[3].length === 2 ? 2000 + parseInt(mdy[3], 10) : parseInt(mdy[3], 10);
-    const d = new Date(year, parseInt(mdy[1], 10) - 1, parseInt(mdy[2], 10));
-    return isNaN(d.getTime()) ? null : d;
+    const mo = parseInt(mdy[1], 10);
+    const da = parseInt(mdy[2], 10);
+    const date = new Date(year, mo - 1, da);
+    return isNaN(date.getTime()) ? null : { date, dateKey: `${year}-${pad2(mo)}-${pad2(da)}` };
   }
 
   const serial = parseFloat(s);
   if (!isNaN(serial) && serial > 40000 && serial < 60000) {
     const d = XLSX.SSF.parse_date_code(serial);
-    if (d) return new Date(d.y, d.m - 1, d.d);
+    if (d) {
+      const date = new Date(d.y, d.m - 1, d.d);
+      return { date, dateKey: `${d.y}-${pad2(d.m)}-${pad2(d.d)}` };
+    }
   }
   return null;
 }
@@ -55,10 +79,11 @@ export function parseCSVData(csvText: string): EnergyData[] {
     if (!line || /^total/i.test(line)) continue;
     const vals = line.split(sep).map((v) => v.trim().replace(/^"|"$/g, ''));
     if (vals.length < 7) continue;
-    const date = parseFlexDate(vals[0]);
-    if (!date) continue;
+    const pd = parseFlexDate(vals[0]);
+    if (!pd) continue;
     data.push({
-      date,
+      date: pd.date,
+      dateKey: pd.dateKey,
       produced: parseNum(vals[1]),
       consumed: parseNum(vals[2]),
       exported: parseNum(vals[3]),
@@ -89,10 +114,11 @@ export function parseExcelData(buffer: ArrayBuffer): EnergyData[] {
   for (let i = headerRow + 1; i < rows.length; i++) {
     const row = rows[i] as unknown[];
     if (!row || row.length < 7 || /^total/i.test(String(row[0] ?? ''))) continue;
-    const date = parseFlexDate(row[0]);
-    if (!date) continue;
+    const pd = parseFlexDate(row[0]);
+    if (!pd) continue;
     data.push({
-      date,
+      date: pd.date,
+      dateKey: pd.dateKey,
       produced: parseNum(row[1]),
       consumed: parseNum(row[2]),
       exported: parseNum(row[3]),
@@ -147,6 +173,7 @@ export function computePeriodKPIs(data: EnergyData[], electricityPrice: number):
       avgDailyProduction: 0,
       autoconsumption: 0,
       selfSufficiency: 0,
+      selfConsumedKwh: 0,
       totalSavings: 0,
       totalExported: 0,
       totalImported: 0,
@@ -164,6 +191,7 @@ export function computePeriodKPIs(data: EnergyData[], electricityPrice: number):
     totalProduced,
     days: data.length,
     avgDailyProduction: totalProduced / data.length,
+    selfConsumedKwh: selfConsumed,
     autoconsumption,
     selfSufficiency,
     totalSavings,

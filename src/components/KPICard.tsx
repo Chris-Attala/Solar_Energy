@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react';
+import { formatFrInt, formatFr1, formatFr2 } from '../utils/formatNumber';
 
 interface Props {
   title: string;
@@ -14,7 +15,13 @@ interface Props {
 
 export function KPICard({ title, value, unit, change, icon: Icon, gradient, shadow, isDark, subtitle }: Props) {
   const num = typeof value === 'number' ? value : parseFloat(String(value));
-  const display = isNaN(num) ? String(value) : num >= 10000 ? num.toFixed(0) : num >= 100 ? num.toFixed(1) : num.toFixed(2);
+  const display = isNaN(num)
+    ? String(value)
+    : num >= 10000
+      ? formatFrInt(num)
+      : num >= 100
+        ? formatFr1(num)
+        : formatFr2(num);
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group cursor-default ${
@@ -34,7 +41,7 @@ export function KPICard({ title, value, unit, change, icon: Icon, gradient, shad
                 ? isDark ? 'bg-leaf-900/40 text-leaf-400' : 'bg-leaf-50 text-leaf-700'
                 : isDark ? 'bg-red-900/40  text-red-400'  : 'bg-red-50  text-red-700'
             }`}>
-              {change >= 0 ? '↑' : '↓'} {Math.abs(change).toFixed(1)}%
+              {change >= 0 ? '↑' : '↓'} {formatFr1(Math.abs(change))}%
             </span>
           )}
         </div>
