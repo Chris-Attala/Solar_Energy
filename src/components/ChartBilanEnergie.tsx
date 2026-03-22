@@ -110,12 +110,13 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       `${fmt(exported)} kWh (${eur(exportRevenueEur)} €)`,
       `${fmt(imported)} kWh (${eur(importCost)} €)`,
     ];
-    /** Écran étroit + petite barre : kWh seul sur la barre ; € au survol (customdata) */
+    /** Écran étroit + petite barre : kWh seul ; € au survol — sauf Exporté (revenu toujours affiché à 0,04 €/kWh) */
     const narrowScreen = plotW < 560;
     const shortBarFrac = 0.3;
     const barLabels = barX.map((v, i) => {
       const frac = v / maxBar;
-      if (narrowScreen && frac < shortBarFrac && i > 0) {
+      const isExportRow = i === 3; // aligné sur y : ['Produit', …, 'Exporté', 'Importé']
+      if (narrowScreen && frac < shortBarFrac && i > 0 && !isExportRow) {
         return `${fmt(v)} kWh`;
       }
       return longLabels[i];
