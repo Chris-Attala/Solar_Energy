@@ -94,11 +94,14 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
     const barX = [produced, selfConsumed, consumed, exported, imported];
     const maxBar = Math.max(...barX, 1e-9);
     const plotW = el.getBoundingClientRect().width || 360;
+    const narrowPlot = plotW < 560;
     /** Mobile : police plus petite ; le CSS ne force plus 12px sur le bilan */
     const textSize = plotW < 400 ? 10 : plotW < 540 ? 11 : 12;
-    // Largeur dispo pour les barres (évite de sous-estimer → faux "outside" type Importé sur mobile)
-    const reserveLeft = 24 + Math.min(102, Math.max(52, Math.round(plotW * 0.2)));
-    const reserveRight = 36;
+    // Heuristique largeur utile (alignée avec marges serrées + yaxis.automargin sur mobile)
+    const reserveLeft = narrowPlot
+      ? 4 + Math.min(96, Math.max(48, Math.round(plotW * 0.17)))
+      : 24 + Math.min(102, Math.max(52, Math.round(plotW * 0.2)));
+    const reserveRight = narrowPlot ? 24 : 36;
     const innerBarPx = Math.max(100, plotW - reserveLeft - reserveRight);
     const narrowFrac =
       plotW < 400 ? 0.4 : plotW < 520 ? 0.3 : plotW < 640 ? 0.24 : 0.22;
@@ -111,7 +114,7 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       `${fmt(imported)} kWh (${eur(importCost)} €)`,
     ];
     /** Écran étroit + petite barre : kWh seul ; € au survol — sauf Exporté (revenu toujours affiché à 0,04 €/kWh) */
-    const narrowScreen = plotW < 560;
+    const narrowScreen = narrowPlot;
     const shortBarFrac = 0.3;
     const barLabels = barX.map((v, i) => {
       const frac = v / maxBar;
@@ -148,6 +151,8 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       orientation: 'h' as const,
       constraintext: 'none' as const,
       cliponaxis: false,
+      /** Sinon le texte « inside » est ancré au bord gauche de la barre et le début est tronqué (ex. 743 → 43) */
+      insidetextanchor: 'middle' as const,
       marker: { color: ['#22c55e', '#4ade80', '#38bdf8', '#f59e0b', '#f87171'] },
       text: barLabels,
       // Plotly accepte un tableau par barre ; les types @types/plotly sont incomplets
@@ -168,14 +173,15 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
       hovertemplate: '<b>%{y}</b><br>%{x:.1f} kWh%{customdata}<extra></extra>',
     } as unknown as Plotly.Data;
     const nOutside = textposition.filter((p) => p === 'outside').length;
-    const marginRight =
-      nOutside === 0
+    /** Mobile : marges de base plus serrées + marge droite liée au nb de libellés outside (évite la « bande vide » à droite) */
+    const marginRight = narrowPlot
+      ? Math.min(100, 8 + nOutside * 20)
+      : nOutside === 0
         ? 28
-        : plotW < 480
-          ? Math.min(120, 52 + nOutside * 22)
-          : nOutside >= 3
-            ? 76
-            : 62;
+        : nOutside >= 3
+          ? 76
+          : 62;
+    const marginLeft = narrowPlot ? 4 : 24;
     Plotly.react(el, [trace], {
       paper_bgcolor: pt.paper,
       plot_bgcolor: pt.plot,
@@ -187,18 +193,20 @@ export function ChartBilanEnergie({ data, electricityPrice }: Props) {
         zeroline: false,
         autorange: true,
         automargin: true,
+        /** Réduit le vide à droite quand le max des barres dépasse le dernier tick */
+        rangemode: 'tozero' as const,
       },
       yaxis: {
         gridcolor: 'transparent',
         color: pt.text,
         automargin: true,
-        tickfont: { size: 11 },
+        tickfont: { size: narrowPlot ? 10 : 11 },
       },
       margin: {
-        l: 24,
+        l: marginLeft,
         r: marginRight,
-        t: 20,
-        b: 40,
+        t: narrowPlot ? 12 : 20,
+        b: narrowPlot ? 32 : 40,
       },
       bargap: 0.4,
       showlegend: false, dragmode: false as unknown as Plotly.Layout['dragmode'],
