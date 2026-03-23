@@ -204,18 +204,27 @@ export function computePeriodKPIs(data: EnergyData[], electricityPrice: number):
 
 export type SeasonFilter = 'all' | 'winter' | 'spring' | 'summer' | 'autumn';
 
-const SEASON_MONTHS: Record<SeasonFilter, number[]> = {
-  all: [],
-  winter: [11, 0, 1],
-  spring: [2, 3, 4],
-  summer: [5, 6, 7],
-  autumn: [8, 9, 10],
-};
+function getAstronomicalSeason(date: Date): Exclude<SeasonFilter, 'all'> {
+  const month = date.getMonth(); // 0-11
+  const day = date.getDate();
+
+  // Bornes astronomiques (hémisphère nord) :
+  // printemps 20/03, été 21/06, automne 22/09, hiver 21/12.
+  if ((month === 2 && day >= 20) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
+    return 'spring';
+  }
+  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 21)) {
+    return 'summer';
+  }
+  if ((month === 8 && day >= 22) || month === 9 || month === 10 || (month === 11 && day <= 20)) {
+    return 'autumn';
+  }
+  return 'winter';
+}
 
 export function filterBySeason(data: EnergyData[], season: SeasonFilter): EnergyData[] {
   if (season === 'all') return data;
-  const months = SEASON_MONTHS[season];
-  return data.filter((d) => months.includes(d.date.getMonth()));
+  return data.filter((d) => getAstronomicalSeason(d.date) === season);
 }
 
 /** Données par saison pour comparaison (production, économies, coût import) */
@@ -223,18 +232,18 @@ export function getSeasonalBreakdown(
   data: EnergyData[],
   electricityPrice: number
 ): { season: string; label: string; production: number; savings: number; importCost: number; days: number; totalDays: number; isEstimate: boolean; color: string }[] {
-  // Nombre de jours théoriques par saison (approximatif)
+  // Nombre de jours théoriques par saison (astronomique, approximatif)
   const SEASON_TOTAL_DAYS: Record<string, number> = {
-    winter: 90, spring: 92, summer: 92, autumn: 91,
+    winter: 89, spring: 93, summer: 93, autumn: 90,
   };
   const config = [
-    { season: 'winter', label: 'Hiver',     months: [11, 0, 1], color: '#38bdf8' },
-    { season: 'spring', label: 'Printemps', months: [2, 3, 4],  color: '#22c55e' },
-    { season: 'summer', label: 'Été',       months: [5, 6, 7],  color: '#f59e0b' },
-    { season: 'autumn', label: 'Automne',   months: [8, 9, 10], color: '#f97316' },
+    { season: 'winter', label: 'Hiver', color: '#38bdf8' },
+    { season: 'spring', label: 'Printemps', color: '#22c55e' },
+    { season: 'summer', label: 'Été', color: '#f59e0b' },
+    { season: 'autumn', label: 'Automne', color: '#f97316' },
   ];
-  return config.map(({ season, label, months, color }) => {
-    const subset = data.filter((d) => months.includes(d.date.getMonth()));
+  return config.map(({ season, label, color }) => {
+    const subset = data.filter((d) => getAstronomicalSeason(d.date) === season);
     const totalDays = SEASON_TOTAL_DAYS[season];
 
     // Pas de données pour cette saison — retourner zéro
